@@ -1,15 +1,16 @@
 ---
-status: active
+status: completed
 workstream: fe-prd
 component: deadzone-ux-synthesis
 slug: combine-two-ux-runs
 session: 1
 created_at: 2026-05-14
 predecessor: null
-confidence: 0.3
+confidence: 0.94
 decisions_start: D1
 related_tasks: []
-related_docs: []
+related_docs:
+  - docs/deadzone-frontend-prd.yaml
 depends_on: []
 canonical_refs:
   - .lev/ux/
@@ -22,9 +23,9 @@ canonical_refs:
 **Workstream:** fe-prd
 **Component:** deadzone-ux-synthesis
 **Session:** 1
-**Status:** active
+**Status:** completed
 
-The two DeadZone `.lev/ux` runs have been combined into `docs/deadzone-frontend-prd.yaml`; current action is validation, commit, and push.
+The two DeadZone `.lev/ux` runs have been combined into `docs/deadzone-frontend-prd.yaml`, validated against BE tasks/contracts, committed, and pushed.
 
 ## Next Agent Brief
 
@@ -32,7 +33,7 @@ The two DeadZone `.lev/ux` runs have been combined into `docs/deadzone-frontend-
 
 **Done Condition:** Both UX runs are inventoried or a missing-run gap is explicitly proven, their artifacts are compared by requirement area, conflicts and shared decisions are resolved into frontend product requirements, and the PRD is delivered without violating the local markdown-save restriction.
 
-**Current Execution Slice:** Validate the docs PRD against backend tasks/contracts, then commit and push.
+**Current Execution Slice:** Complete; no active execution slice remains.
 
 **Why This Slice Now:** The objective depends on comparing two concrete UX runs; synthesis before both source sets are found would be incomplete.
 
@@ -47,19 +48,19 @@ The two DeadZone `.lev/ux` runs have been combined into `docs/deadzone-frontend-
 | 3 | FE PRD handoff | .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md | created | work skill | D1 | keep updated |
 | 4 | FE partner brief | deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml | loaded | prior art | D2 | supersede/extend |
 | 5 | API contract | deadzone/.lev/pm/specs/deadzone-api-contract.yaml | loaded | prior art | D2 | bind PRD |
-| 6 | FE PRD | docs/deadzone-frontend-prd.yaml | modified | current objective | D2/D3 | validate + push |
+| 6 | FE PRD | docs/deadzone-frontend-prd.yaml | completed | current objective | D2/D3 | pushed |
 
 ## Roadmap To Goal
 
 **Goal**: Produce a frontend PRD from an exhaustive comparison of two `.lev/ux` runs.
 **Done Condition**: Source inventory, compare/contrast matrix, resolved FE requirements, gaps, and completion audit are all backed by concrete file evidence.
-**Remaining Steps**: 1
+**Remaining Steps**: 0
 
 ### Step 1: Validate, commit, and push
-- Validate `docs/deadzone-frontend-prd.yaml` parses as YAML.
-- Check API mode enum alignment against `.lev/pm/specs/deadzone-api-contract.yaml`.
-- Check backend task coverage against `.lev/pm/plans/deadzone-agent-task-bundle.yaml`.
-- Commit the docs PRD update and push `main`.
+- Complete: `docs/deadzone-frontend-prd.yaml` parses as YAML.
+- Complete: API mode enum alignment passed against `.lev/pm/specs/deadzone-api-contract.yaml`.
+- Complete: backend task coverage passed against `.lev/pm/plans/deadzone-agent-task-bundle.yaml`.
+- Complete: committed and pushed to `origin/main`.
 
 #### Step 2: Exhaustive compare/contrast
 - Compare request, domain, problem spec, IA, task graph, FSM, components, wireframes, and constraints.
@@ -84,6 +85,7 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 | T+4 | Prior-art scan found the paired DeadZone UX run and existing DeadZone PM specs under `deadzone/.lev/`. |
 | T+6 | User requested docs location and push; PRD target moved to `docs/deadzone-frontend-prd.yaml`. |
 | T+7 | Backend compatibility check found and resolved the UX `Live` mode mismatch with API modes `ble`, `wifi`, and `hybrid`. |
+| T+8 | Docs PRD and handoff update committed and pushed to `origin/main` at `9111e54`. |
 
 ### CHECKPOINT 1 -- FE Handoff Created
 
@@ -113,7 +115,17 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 **Files Modified:** `docs/deadzone-frontend-prd.yaml`, `.lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md`.
 **Understanding:** The backend API mode enum is `mock`, `replay`, `ble`, `wifi`, `mesh`, `hybrid`; `Live Sensors` must stay a UI grouping label, not a wire value.
 **Progress:** Added `backend_task_compatibility`, mapped BE-01 through BE-06 to FE requirements, and named the three backend-required replay scenarios.
-**Next Steps:** Commit and push `main`.
+**Next Steps:** None; goal is complete.
+
+### CHECKPOINT 4 -- Pushed
+
+**Current State:** Work is complete and published.
+**Context:** User requested `docs/`, push, and BE task compatibility.
+**Files Loaded:** `docs/deadzone-frontend-prd.yaml`, `.lev/pm/plans/deadzone-agent-task-bundle.yaml`, `.lev/pm/specs/deadzone-api-contract.yaml`, git status and push output.
+**Files Modified:** `.lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md`.
+**Understanding:** The pushed PRD is in docs and contract-compatible; a final handoff update records completion after push.
+**Progress:** Commit `9111e54` pushed to `origin/main`; final handoff status changed to completed.
+**Next Steps:** None.
 
 ## Timeline
 
@@ -127,6 +139,7 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 | T+5 | DeadZone UX pair and PM specs loaded for synthesis |
 | T+6 | User requested docs placement and push |
 | T+7 | Docs PRD made backend-compatible |
+| T+8 | Commit `9111e54` pushed to `origin/main` |
 
 ## Decisions Log
 
@@ -194,7 +207,7 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 **Follow-up Required:**
 - [x] Validate PRD mode enum against API mode enum.
 - [x] Map BE tasks to FE requirements.
-- [ ] Push docs update.
+- [x] Push docs update.
 
 ## Code Context
 
@@ -203,7 +216,7 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 | File | Change Type | Lines | Status | Notes |
 |------|-------------|-------|--------|-------|
 | docs/deadzone-frontend-prd.yaml | modified | ~40 | complete | Added BE task compatibility and contract-safe mode mapping |
-| .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md | modified | ~55 | in_progress | Updated user request, decisions, and push status |
+| .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md | modified | ~65 | complete | Updated user request, decisions, validation, and push status |
 
 **Total Changes:**
 - Files added: 0
@@ -229,8 +242,8 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 
 ### Immediate (Next Session)
 
-1. Push still pending until commit succeeds.
-2. None on source location; both DeadZone UX runs are present under `.lev/ux/`.
+1. None; docs PRD is pushed.
+2. None; both DeadZone UX runs are present under `.lev/ux/`.
 
 ### Short-term (This Week)
 
