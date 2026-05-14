@@ -2169,6 +2169,8 @@ button[aria-label="Toggle sidebar"],
   }
 
   .skeleton-block { animation: none; background: var(--surface-3); }
+}
+
 /* ── Device Table ────────────────────────────────────────────────────── */
 .devices-panel {
   display: flex;
