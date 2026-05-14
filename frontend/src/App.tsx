@@ -1,49 +1,87 @@
-import { useEffect, useState } from "react";
-import { HeatmapDashboard } from "./components/HeatmapDashboard";
+import { useState, useEffect, useCallback } from "react";
+import { StoreProvider, useStore } from "./store";
+import { Sidebar } from "./components/Sidebar";
+import { Header } from "./components/Header";
+import { MetricsBar } from "./components/MetricsBar";
+import { VenueMap } from "./components/VenueMap";
+import { AlertsPanel } from "./components/AlertsPanel";
+import { ZoneDetail } from "./components/ZoneDetail";
+import { AlertToast } from "./components/AlertToast";
+import { Footer } from "./components/Footer";
+import { ReplayControls } from "./components/ReplayControls";
+import "./styles.css";
 
-type Mode = "mock" | "replay" | "live" | "mesh";
+function Dashboard() {
+  const { snapshot, reset } = useStore();
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeSection, setActiveSection] = useState("dashboard");
 
-interface Zone {
-  id: string;
-  name: string;
-  count: number;
-  capacity: number;
-  trend_5m: string;
-}
+  // R key to reset
+  const handleKey = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "r" || e.key === "R") {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        reset();
+      }
+    },
+    [reset]
+  );
 
-interface Headline {
-  total: number;
-  capacity_pct: number;
-  peak_zone: string;
-  trend: string;
-}
+  useEffect(() => {
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleKey]);
 
-interface AggregateFrame {
-  timestamp: number;
-  mode: Mode;
-  venue_id: string;
-  zones: Zone[];
-  headline: Headline;
+  const alerts = snapshot?.alerts ?? [];
+
+  const handleZoneClick = (zoneId: string) => {
+    setSelectedZone(zoneId === selectedZone ? null : zoneId);
+  };
+
+  return (
+    <div className="app-layout">
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        selectedZone={selectedZone}
+        onZoneClick={handleZoneClick}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
+
+      <div className="app-main">
+        <Header />
+        <MetricsBar />
+
+        <div className="main-content">
+          <div className="canvas-wrap">
+            <VenueMap
+              selectedZone={selectedZone}
+              onZoneClick={handleZoneClick}
+            />
+            <ReplayControls />
+          </div>
+          {selectedZone ? (
+            <ZoneDetail zoneId={selectedZone} onClose={() => setSelectedZone(null)} />
+          ) : (
+            <AlertsPanel onViewZone={(z) => setSelectedZone(z)} />
+          )}
+        </div>
+
+        <Footer />
+      </div>
+
+      <AlertToast alerts={alerts} />
+    </div>
+  );
 }
 
 export default function App() {
-  const [frame, setFrame] = useState<AggregateFrame | null>(null);
-  const [connected, setConnected] = useState(false);
-
-  useEffect(() => {
-    const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${proto}//${location.host}/ws/events`);
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
-    ws.onmessage = (e) => {
-      try {
-        setFrame(JSON.parse(e.data));
-      } catch {
-        // skip malformed frame
-      }
-    };
-    return () => ws.close();
-  }, []);
-
-  return <HeatmapDashboard frame={frame} connected={connected} />;
+  return (
+    <StoreProvider>
+      <Dashboard />
+    </StoreProvider>
+  );
 }

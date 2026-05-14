@@ -7,9 +7,9 @@ export default defineConfig({
     port: 3000,
     host: true,
     proxy: {
-      "/ws": { target: "ws://backend:8000", ws: true, changeOrigin: true },
-      "/healthz": { target: "http://backend:8000", changeOrigin: true },
-      "/modes": { target: "http://backend:8000", changeOrigin: true },
+      "/ws": { target: "ws://localhost:8000", ws: true, changeOrigin: true },
+      "/health": { target: "http://localhost:8000", changeOrigin: true },
+      "/api": { target: "http://localhost:8000", changeOrigin: true },
     },
   },
 });
