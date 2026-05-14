@@ -178,7 +178,7 @@ export interface CaptureStatus {
 export const MODE_TOKENS: Record<Mode, { color: string; label: string; badge: string }> = {
   mock:   { color: "#7e7e7e", label: "MOCK",   badge: "Simulated data" },
   replay: { color: "#f4b400", label: "REPLAY", badge: "Recorded data" },
-  ble:    { color: "#e22718", label: "BLE",    badge: "Real-time BLE sensing" },
+  ble:    { color: "#e22718", label: "BLE/LIVE", badge: "Live BLE sensing" },
   wifi:   { color: "#0066b1", label: "WI-FI",  badge: "Real-time Wi-Fi sensing" },
   mesh:   { color: "#8B5CF6", label: "MESH",   badge: "Distributed sensors" },
   hybrid: { color: "#ffffff", label: "HYBRID", badge: "Combined live sensing" },

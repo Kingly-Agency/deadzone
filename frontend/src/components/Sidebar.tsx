@@ -27,7 +27,6 @@ export function Sidebar({
   const zoneAggs = snapshot?.zones ?? [];
   const alertCount = snapshot?.alerts.filter((a) => a.status === "active").length ?? 0;
   const sensorCount = snapshot?.sensors.length ?? 0;
-  const isReplay = snapshot?.stream.mode === "replay";
 
   // When in drawer mode, clicking a nav item also closes the drawer
   const handleSectionChange = (section: string) => {
@@ -166,17 +165,6 @@ export function Sidebar({
           )}
         </button>
 
-        {isReplay && (
-          <button
-            className={`sidebar-item ${activeSection === "replay" ? "sidebar-item--active" : ""}`}
-            onClick={() => handleSectionChange("replay")}
-            title="Replay"
-          >
-            <span className="sidebar-icon">⏮</span>
-            {!collapsed && <span className="sidebar-label">Replay</span>}
-          </button>
-        )}
-
         <button
           className={`sidebar-item ${activeSection === "mesh" ? "sidebar-item--active" : ""}`}
           onClick={() => handleSectionChange("mesh")}
@@ -185,6 +173,16 @@ export function Sidebar({
           <span className="sidebar-icon">⌬</span>
           {!collapsed && <span className="sidebar-label">Mesh</span>}
         </button>
+
+        <button
+          className={`sidebar-item ${activeSection === "configuration" ? "sidebar-item--active" : ""}`}
+          onClick={() => handleSectionChange("configuration")}
+          title="Configuration"
+        >
+          <span className="sidebar-icon">⚙</span>
+          {!collapsed && <span className="sidebar-label">Configuration</span>}
+        </button>
+
       </nav>
 
       {/* Bottom status */}

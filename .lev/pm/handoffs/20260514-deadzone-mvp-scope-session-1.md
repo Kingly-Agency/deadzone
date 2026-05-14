@@ -319,6 +319,68 @@ curl http://<A-lan-ip>:8001/mesh/state | jq
 | 4 | `/Users/jean-patricksmith/.agents/skills-db/design-ux/interactive-visualization-creator/SKILL.md` | UX enrichment | Visualization should teach through semantic layers and device-aware quality | Guides heatmap/flow UI |
 | 5 | `/Users/jean-patricksmith/.agents/skills-db/design-ux/ux-audit/SKILL.md` | UX enrichment | Visibility, error states, and accessibility need explicit checks | Guides UI validation |
 
+### ⚡ CHECKPOINT 4 — 1-click mesh shipped + live demo verified
+
+**Current State:** Mesh + 1-click UI is fully landed on `origin/main` (HEAD `35b3d70`). Three local services running (`uvicorn :8000`, `python -m app.mesh satellite :8001`, `npm run dev :3000`); end-to-end UI flow verified via agent-browser:
+- Sidebar shows Mesh nav button (⌬ icon)
+- MeshPanel renders in idle state — no 500 error
+- Click "HOST MESH" → role flips to "Hosting", auto-self-joins
+- Stats live: 1 node, 31 estimated devices across 3 zones (near-scanner, mid-field, far-field), 0 mesh_links (only 1 node — peers needed)
+- API confirms `packets_sent` increments at 1Hz; `beacon_active: true`
+
+**Files Created (committed to remote in commits `00003fe`, `3b3859f`, `585a940`):**
+- Backend: `app/mesh/runtime.py`, `discovery.py`, `api_extra.py` (6 new endpoints); modified `app.py` (lifespan wiring), `models.py` (5 new models), `__main__.py` (`satellite` subcommand), `README.md` (UI-first rewrite)
+- Frontend: `lib/mesh-client.ts`, `components/MeshPanel.tsx`, `components/MeshPanel.module.css`, `vite-env.d.ts`; modified `vite.config.ts` (`/mesh` proxy), `App.tsx` + `Sidebar.tsx` (mesh nav + activeSection branch)
+- Tests: `tests/test_mesh_runtime.py` (24 tests; full suite 67/0 green)
+- Spec: `.lev/pm/specs/deadzone-mesh-wifi.yaml` extended with `discovery` + `ui_driven_lifecycle` sections + DC-MESH-07
+
+**Critical bugs caught during multi-batch review (would have shipped):**
+1. Transport buffer duplicated packets on 5xx (no popleft before re-append)
+2. 4xx during replay permanently blocked the buffer
+3. Seq counter drift between fresh/replayed packets
+4. Missing public `gateway_id` on MeshRuntime (would have crashed every endpoint)
+5. `_self_join` exception path could leave `_hosting=True` with no node running
+6. FE agent's responsive-drawer refactor twice reverted the MeshPanel integration — re-integrated, currently durable (the latest parallel-agent iteration keeps MeshPanel intact)
+
+**Architecture decisions made along the way:**
+- WiFi-faked mesh (HTTP POST), not real Meshtastic LoRa — honest demo claim baked into UI badge and README
+- Single satellite per laptop handles BOTH gateway + node roles (state machine: idle | hosting | joined | hosting_and_joined)
+- Auto-self-join when hosting (your laptop counts as a node immediately, no second click)
+- UDP broadcast discovery on port 8002 (3s interval, 30s TTL) with manual-paste fallback
+- Privacy invariant: aggregate-only across wire — raw BLE MACs, salted beacon_hashes, RSSI samples NEVER leave a node
+- Standalone satellite on `:8001`, separate from main BE on `:8000` — zero coupling to BE-agent territory (`app/main.py`, `routes.py`, `engine.py`, `pyproject.toml` all untouched)
+
+**Verifier results:**
+- Backend pytest: 67/67 passing
+- Frontend typecheck + build: clean (49 modules, 187KB JS gzipped to 57KB)
+- agent-browser end-to-end: dashboard → mesh nav → click "HOST MESH" → role=Hosting, stats live
+- Live API: `/mesh/me` shows packets_sent=61 after ~1min, freshness=live, hosting=true
+
+**Outstanding non-blocking items:**
+- Mesh link window: code uses 2s; spec says 1s create / 5s expire. Tunable; pragmatic for WiFi jitter. Reconcile in a follow-up.
+- MockNodeScanner never emits "spiking" trend — cosmetic.
+- Macs don't loopback UDP broadcast to localhost — single-laptop `/mesh/discover` shows empty list. Two-laptop LAN discovery works. Manual-paste fallback is always available.
+- Working tree on disk has a parallel-agent's WIP refactor (re-adds ConfigurationScreen route, removes ReplayControls). MeshPanel integration is preserved in their refactor. Their commit will land cleanly.
+
+**Two-laptop test runbook (partner can do this after `git pull`):**
+```bash
+# Each laptop, three terminals:
+cd backend && source .venv/bin/activate && uvicorn app.main:app --port 8000
+cd backend && source .venv/bin/activate && python -m app.mesh satellite
+cd frontend && npm run dev
+
+# Open http://localhost:3000 -> Sidebar -> Mesh
+# Host laptop: click "HOST MESH"
+# Partner laptop: wait 3s, click "Join" next to discovered gateway
+# (or paste http://<host-lan-ip>:8001 if UDP blocked)
+```
+
+**Next Steps:**
+1. Reconcile the spec/code link-window deviation (medium priority, follow-up).
+2. Optional: wire real BLE Scanner via DI from `app.sources.ble` so mesh nodes use real sensing (BE-agent coordination).
+3. Optional: add a friendlier "Satellite offline" banner in MeshPanel when /mesh/me returns connection error (currently shows raw "500").
+4. Optional: bundle satellite startup into the existing `npm run dev` script so all 3 services boot together.
+
 ## Open Questions
 
 ### Immediate

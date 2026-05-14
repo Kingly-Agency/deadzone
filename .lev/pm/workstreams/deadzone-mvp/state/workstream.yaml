@@ -27,7 +27,7 @@ extensions:
     confidence: 0.85
     summary: Local-first crowd-intelligence MVP for hackathon demo. Backend (FastAPI + BLE + WiFi-faked mesh) is feature-complete; frontend (Vite + React) is running at localhost:3000 and is being made responsive (mobile/tablet/desktop) with an a11y-compliant sidebar drawer; BMW M design language is captured and deferred until after responsive pass lands.
     done_condition: docker compose up boots; backend WebSocket streams IntelligenceSnapshot; frontend heatmap dashboard renders live data + replay AND is responsive across mobile/tablet/desktop with a11y-compliant nav drawer; BMW M visual identity applied; acceptance checks in deadzone-agent-task-bundle.yaml pass.
-    current_focus: Responsive UI pass in flight via background designer subagent (2aec7a6e-b03f-429a-8fe9-15d6f4c8ad30). Three new mesh files are untracked. BMW M CSS rollout strategy is undecided and waits on responsive pass.
+    current_focus: Unified local launch completed: stale DeadZone servers were stopped, repo-root `npm run dev` starts backend then frontend, and BLE/LIVE + MOCK remain the only active UI modes.
   last_session:
     date: '2026-05-14'
     type: exec
@@ -63,6 +63,14 @@ extensions:
       type: implementation
       status: completed
       summary: "UI control relocation: moved theme toggle (useTheme/getInitialTheme) from Sidebar.tsx → Header.tsx (header-right, reuses .header-btn); moved Reset button from Header.tsx → Sidebar.tsx footer (.sidebar-item); removed sidebar-status div and its config/useEffect dependencies from Sidebar.tsx. Files: frontend/src/components/Header.tsx, frontend/src/components/Sidebar.tsx."
+    - date: '2026-05-14'
+      type: bugfix
+      status: completed
+      summary: "Configuration page regression fixed: user reported Configuration disappeared from Sidebar. Rewired existing `ConfigurationScreen.tsx` into `App.tsx` and `Sidebar.tsx`; added `frontend/scripts/check-configuration-nav.mjs`; validation passed."
+    - date: '2026-05-14'
+      type: implementation
+      status: completed
+      summary: "Unified local launch slice completed: stopped stale DeadZone Vite/backend/mesh/Bluetooth processes; added repo-root `npm run dev` via `package.json` + `scripts/dev-stack.mjs`; README now points to the unified command. Validation passed: launcher syntax, 13 focused backend tests, frontend typecheck/build, smoke `GET /` 200, config active_mode `ble` and available_modes [`ble`, `mock`]. No commit/push per explicit-user-request safety policy."
   key_artifacts:
     - path: docs/deadzone-frontend-prd.yaml
       role: Frontend PRD (pushed, BE-task-compatible)
@@ -80,6 +88,14 @@ extensions:
       role: BMW M → DeadZone token + component map
     - path: .lev/pm/designs/bmw-m-design-language-source.md
       role: BMW M verbatim source spec
+    - path: .lev/pm/validation-reports/20260514-configuration-nav-restore.md
+      role: Validation report for Configuration sidebar/page restoration
+    - path: package.json
+      role: Planned repo-root unified launch command
+    - path: scripts/dev-stack.mjs
+      role: Backend + frontend dev orchestrator for `npm run dev`
+    - path: .lev/pm/validation-reports/20260514-unified-local-launch.md
+      role: Validation report for unified local launch and BLE/MOCK mode contract
   pending_commits:
     - paths:
         - .lev/pm/designs/bmw-m-design-language.md

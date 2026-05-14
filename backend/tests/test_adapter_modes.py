@@ -21,7 +21,7 @@ def test_unavailable_modes_return_explicit_409_reasons():
 
     replay = client.post("/api/v1/mode", json={"mode": "replay"})
     assert replay.status_code == 409
-    assert "captured BLE trace" in replay.json()["message"]
+    assert "not exposed" in replay.json()["message"]
 
     replay_control = client.post("/api/v1/replay/control", json={"action": "pause"})
     assert replay_control.status_code == 409

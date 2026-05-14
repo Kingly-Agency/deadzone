@@ -8,8 +8,8 @@ import { AlertsPanel } from "./components/AlertsPanel";
 import { ZoneDetail } from "./components/ZoneDetail";
 import { AlertToast } from "./components/AlertToast";
 import { Footer } from "./components/Footer";
-import { ReplayControls } from "./components/ReplayControls";
 import { HeatmapDashboard } from "./components/HeatmapDashboard";
+import { ConfigurationScreen } from "./components/ConfigurationScreen";
 import { MeshPanel } from "./components/MeshPanel";
 import { Drawer } from "./components/Drawer";
 import "./styles.css";
@@ -190,6 +190,8 @@ function Dashboard() {
         <div className="main-content">
           {activeSection === "heatmap" ? (
             <HeatmapDashboard />
+          ) : activeSection === "configuration" ? (
+            <ConfigurationScreen />
           ) : activeSection === "mesh" ? (
             <MeshPanel />
           ) : (
@@ -199,7 +201,6 @@ function Dashboard() {
                   selectedZone={selectedZone}
                   onZoneClick={handleZoneClick}
                 />
-                <ReplayControls />
               </div>
               {/* Desktop right column only — on narrow viewports, these live in the right drawer */}
               {!isNarrow &&

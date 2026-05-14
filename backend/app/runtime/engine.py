@@ -28,6 +28,14 @@ from app.spatial.alerts import build_alerts
 from app.spatial.venue import demo_venue
 from app.traces import TraceStore
 
+EXPOSED_MODES: list[Mode] = ["ble", "mock"]
+HIDDEN_MODE_REASONS: dict[str, str] = {
+    "replay": "Replay is not exposed in the live dashboard mode picker.",
+    "wifi": WIFI_DISABLED_REASON,
+    "mesh": MESH_DISABLED_REASON,
+    "hybrid": "Hybrid is disabled until BLE capture plus Wi-Fi/Mesh adapters are validated.",
+}
+
 
 class DeadZoneEngine:
     def __init__(self, settings: Settings) -> None:
@@ -36,7 +44,7 @@ class DeadZoneEngine:
         self.capture = BleCaptureManager(settings, self.store)
         self.replay = ReplayController(self.store)
         self.mock = MockFromTraceSource(self.store, settings.seed)
-        self.active_mode: Mode = settings.mode
+        self.active_mode: Mode = settings.mode if settings.mode in EXPOSED_MODES else "ble"
         self.sequence = 0
         self._live_start_lock = asyncio.Lock()
 
@@ -45,27 +53,20 @@ class DeadZoneEngine:
         return self.sequence
 
     def disabled_modes(self) -> dict[str, str]:
-        disabled: dict[str, str] = {
-            "wifi": WIFI_DISABLED_REASON,
-            "mesh": MESH_DISABLED_REASON,
-            "hybrid": "Hybrid is disabled until BLE capture plus Wi-Fi/Mesh adapters are validated.",
-        }
+        disabled: dict[str, str] = dict(HIDDEN_MODE_REASONS)
         ble_reason = self.capture.disabled_reason
         if ble_reason:
             disabled["ble"] = ble_reason
-        if not self.store.latest_trace_id():
-            disabled["replay"] = "Replay requires at least one locally captured BLE trace."
-            disabled["mock"] = "Mock generation requires at least one locally captured BLE trace."
         return disabled
 
     def config(self) -> AppConfig:
         return AppConfig(
             active_mode=self.active_mode,
-            available_modes=["ble", "replay", "mock", "wifi", "mesh", "hybrid"],
+            available_modes=EXPOSED_MODES,
             disabled_modes=self.disabled_modes(),
             venue=demo_venue(),
             features={
-                "replay": "replay" not in self.disabled_modes(),
+                "replay": False,
                 "ble_adapter": self.capture.disabled_reason is None,
                 "wifi_adapter": False,
                 "mesh_adapter": False,
@@ -117,11 +118,7 @@ class DeadZoneEngine:
 
     def reset_demo(self) -> IntelligenceSnapshot:
         self.sequence = 0
-        if self.store.latest_trace_id():
-            self.active_mode = "replay"
-            self.replay.control(ReplayControlRequest(action="load"), self.next_sequence())
-        else:
-            self.active_mode = "ble"
+        self.active_mode = "ble"
         return self.snapshot()
 
     def snapshot(self) -> IntelligenceSnapshot:
@@ -311,9 +308,9 @@ class DeadZoneEngine:
                 source_label=(
                     f"Mock derived from {self.store.public_label(trace_id)}"
                     if trace_id
-                    else "Mock unavailable: capture BLE first"
+                    else "Mock demo data"
                 ),
-                freshness="fresh" if trace_id else "offline",
+                freshness="fresh",
                 clock=StreamClock(timestamp=now, replay_position_s=0.0, speed=1.0),
             )
         if mode == "ble":

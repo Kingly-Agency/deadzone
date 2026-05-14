@@ -41,7 +41,7 @@ def append_trace(engine: DeadZoneEngine, trace_id: str = "field-capture") -> Non
         )
 
 
-def test_replay_and_mock_are_unavailable_until_ble_trace_exists(tmp_path):
+def test_replay_is_unavailable_but_mock_runs_without_ble_trace(tmp_path):
     engine = make_engine(tmp_path)
 
     replay_responses = [
@@ -57,8 +57,12 @@ def test_replay_and_mock_are_unavailable_until_ble_trace_exists(tmp_path):
     }
     assert isinstance(load_response, ErrorResponse)
     assert load_response.code == "trace_not_found"
-    assert isinstance(mock_response, ErrorResponse)
-    assert mock_response.code == "mode_unavailable"
+    assert isinstance(mock_response, StreamState)
+
+    snapshot = engine.snapshot()
+    assert snapshot.stream.mode == "mock"
+    assert snapshot.stream.connected is True
+    assert snapshot.metrics.estimated_devices > 0
 
 
 def test_captured_ble_trace_becomes_replay_scenario(tmp_path):

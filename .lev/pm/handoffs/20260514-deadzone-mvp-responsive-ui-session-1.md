@@ -115,6 +115,9 @@ Track the responsive UI pass for the DeadZone frontend so the next agent can:
 | T+3  | User added Sidebar drawer + a11y hard requirements |
 | T+4  | Worker interrupted + re-briefed with consolidated spec |
 | T+5  | User requested AlertsPanel as right-side drawer below desktop; worker re-briefed |
+| T+6  | Worker returned success: 6 files modified + Drawer.tsx created; typecheck + build green |
+| T+7  | User reported Configuration page no longer appears in Sidebar; confirmed `ConfigurationScreen.tsx` exists but App/Sidebar no longer wire it |
+| T+8  | Restored Configuration nav/page wiring; red check failed first, then `node scripts/check-configuration-nav.mjs`, `npm run typecheck`, and `npm run build` passed |
 
 ## Decisions Log
 
@@ -194,18 +197,32 @@ Track the responsive UI pass for the DeadZone frontend so the next agent can:
 
 | # | File | Path | State | Impact | Canonical Ref | Decision | Next |
 |---|------|------|-------|--------|---------------|----------|------|
-| 1 | styles.css | frontend/src/styles.css | planned | 5 | — | D1, D3 | worker adds responsive blocks |
-| 2 | App.tsx | frontend/src/App.tsx | planned | 4 | — | D3 | add `isMobileOpen` + media-query hook |
-| 3 | Sidebar.tsx | frontend/src/components/Sidebar.tsx | planned | 5 | — | D3, D4 | drawer + a11y |
-| 4 | Header.tsx | frontend/src/components/Header.tsx | planned | 3 | — | D1 | wrap / collapse |
-| 5 | MetricsBar.tsx | frontend/src/components/MetricsBar.tsx | planned | 3 | — | D1 | wrap or h-scroll |
-| 6 | VenueMap.tsx | frontend/src/components/VenueMap.tsx | planned | 4 | — | D1 | Leaflet `invalidateSize` on resize |
-| 7 | AlertToast.tsx | frontend/src/components/AlertToast.tsx | planned | 2 | — | D1 | mobile reposition |
-| 8 | ReplayControls.tsx | frontend/src/components/ReplayControls.tsx | planned | 2 | — | D1 | bottom-anchor on mobile |
-| 9 | Footer.tsx | frontend/src/components/Footer.tsx | planned | 1 | — | D1 | wrap |
-| 10 | AlertsPanel.tsx | frontend/src/components/AlertsPanel.tsx | planned | 4 | — | D5 | render inside right drawer below 1025px |
-| 11 | ZoneDetail.tsx | frontend/src/components/ZoneDetail.tsx | planned | 4 | — | D5 | render inside right drawer below 1025px; auto-open on zone-click |
-| 12 | Drawer (new primitive) | frontend/src/components/Drawer.tsx | planned | 4 | — | D4, D5 | shared a11y drawer used by left nav + right alerts |
+| 1 | styles.css | frontend/src/styles.css | modified | 5 | — | D1, D3 | QA + commit |
+| 2 | App.tsx | frontend/src/App.tsx | modified | 4 | — | D3, D5, D6 | Configuration render restored; QA + commit |
+| 3 | Sidebar.tsx | frontend/src/components/Sidebar.tsx | modified | 5 | — | D3, D4, D6 | Configuration item restored; QA + commit |
+| 4 | Header.tsx | frontend/src/components/Header.tsx | modified | 3 | — | D1, D5 | QA + commit |
+| 5 | MetricsBar.tsx | frontend/src/components/MetricsBar.tsx | loaded | 3 | — | D1 | CSS-only changes via styles.css |
+| 6 | VenueMap.tsx | frontend/src/components/VenueMap.tsx | modified | 4 | — | D1 | ResizeObserver wired; verify in QA |
+| 7 | AlertToast.tsx | frontend/src/components/AlertToast.tsx | loaded | 2 | — | D1 | CSS-only reposition |
+| 8 | ReplayControls.tsx | frontend/src/components/ReplayControls.tsx | loaded | 2 | — | D1 | CSS-only bottom-anchor |
+| 9 | Footer.tsx | frontend/src/components/Footer.tsx | loaded | 1 | — | D1 | CSS-only wrap |
+| 10 | AlertsPanel.tsx | frontend/src/components/AlertsPanel.tsx | loaded | 4 | — | D5 | rendered inside right Drawer |
+| 11 | ZoneDetail.tsx | frontend/src/components/ZoneDetail.tsx | loaded | 4 | — | D5 | rendered inside right Drawer |
+| 12 | Drawer.tsx | frontend/src/components/Drawer.tsx | created | 4 | — | D4, D5 | shared a11y drawer primitive |
+| 13 | ConfigurationScreen.tsx | frontend/src/components/ConfigurationScreen.tsx | loaded | 3 | — | D6 | restore route/render entry |
+| 14 | check-configuration-nav.mjs | frontend/scripts/check-configuration-nav.mjs | created | 2 | — | D6 | regression check passing |
+| 15 | 20260514-configuration-nav-restore.md | .lev/pm/validation-reports/20260514-configuration-nav-restore.md | created | 2 | — | D6 | validation captured |
+
+### D6: Restore Configuration as a sidebar section
+
+**When:** T+7
+**Context:** User asked where Configuration went; code inspection showed the page still exists but is not imported/rendered by `App.tsx`, and `Sidebar.tsx` has no Configuration nav item.
+**Decision:** Re-add Configuration as a normal sidebar section and render `ConfigurationScreen` from `App.tsx`; keep it inside the existing responsive nav/drawer behavior.
+**Rationale:** This restores the previous IA without adding routing or a new settings surface.
+**Impact:** Narrow scope touches `App.tsx`, `Sidebar.tsx`, and a lightweight regression check.
+**Promotion:** stay in handoff.
+
+**Validation:** `node scripts/check-configuration-nav.mjs` failed before implementation for the missing import/render/sidebar item, then passed after the fix. `npm run typecheck` and `npm run build` both passed.
 
 ## Meta
 

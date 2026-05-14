@@ -10,12 +10,8 @@ function getInitialTheme(): "dark" | "light" {
 }
 
 const MODE_LIST: { mode: Mode; desc: string }[] = [
-  { mode: "mock",   desc: "Simulated data, seeded RNG" },
-  { mode: "replay", desc: "Recorded scenario playback" },
-  { mode: "ble",    desc: "Real-time BLE sensors" },
-  { mode: "wifi",   desc: "Real-time Wi-Fi sensing" },
-  { mode: "mesh",   desc: "Meshtastic mesh network" },
-  { mode: "hybrid", desc: "Combined live sensing" },
+  { mode: "ble",  desc: "Live BLE sensor stream" },
+  { mode: "mock", desc: "Simulated data, seeded RNG" },
 ];
 
 export function Header({
@@ -46,7 +42,7 @@ export function Header({
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
-  const mode: Mode = snapshot?.stream.mode ?? config?.active_mode ?? "mock";
+  const mode: Mode = snapshot?.stream.mode ?? config?.active_mode ?? "ble";
   const token = MODE_TOKENS[mode];
   const disabledModes = config?.disabled_modes ?? {};
 

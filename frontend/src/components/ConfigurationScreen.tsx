@@ -3,17 +3,13 @@ import { MODE_TOKENS } from "../types";
 import type { Mode } from "../types";
 
 const MODE_LIST: { mode: Mode; desc: string }[] = [
+  { mode: "ble", desc: "Live BLE sensor stream" },
   { mode: "mock", desc: "Simulated data, seeded RNG" },
-  { mode: "replay", desc: "Recorded scenario playback" },
-  { mode: "ble", desc: "Real-time BLE sensors" },
-  { mode: "wifi", desc: "Real-time Wi-Fi sensing" },
-  { mode: "mesh", desc: "Meshtastic mesh network" },
-  { mode: "hybrid", desc: "Combined live sensing" },
 ];
 
 export function ConfigurationScreen() {
   const { config, snapshot, switchMode, connected } = useStore();
-  const liveMode = snapshot?.stream.mode ?? config?.active_mode ?? "mock";
+  const liveMode = snapshot?.stream.mode ?? config?.active_mode ?? "ble";
   const disabledModes = config?.disabled_modes ?? {};
   const features = config?.features;
 
@@ -92,10 +88,8 @@ export function ConfigurationScreen() {
 
       {features && (
         <div className="heatmap-page-metrics">
-          <FeatureCard label="Replay" enabled={features.replay} />
           <FeatureCard label="BLE adapter" enabled={features.ble_adapter} />
-          <FeatureCard label="Wi‑Fi adapter" enabled={features.wifi_adapter} />
-          <FeatureCard label="Mesh adapter" enabled={features.mesh_adapter} />
+          <FeatureCard label="Mock stream" enabled />
         </div>
       )}
     </div>

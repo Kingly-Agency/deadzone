@@ -15,9 +15,9 @@ def test_health_config_and_snapshot_contract_shapes():
 
     config = client.get("/api/v1/config").json()
     assert config["active_mode"] == "ble"
-    assert "ble" in config["available_modes"]
-    assert "mock" in config["disabled_modes"]
-    assert "replay" in config["disabled_modes"]
+    assert config["available_modes"] == ["ble", "mock"]
+    assert "mock" not in config["disabled_modes"]
+    assert "replay" not in config["available_modes"]
     assert config["venue"]["id"] == "ble-capture-floor"
 
     snapshot = client.get("/api/v1/snapshot").json()

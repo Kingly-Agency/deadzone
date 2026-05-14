@@ -7,10 +7,12 @@ DeadZone is an observability layer for physical spaces. Live crowd density, move
 ## Quick Start
 
 ```bash
-docker compose up
+npm run dev
 ```
 
-Then open <http://localhost:3000>. You should see an animated crowd heatmap with a `MOCK — simulated data` badge in the top-right within a few seconds.
+Run this from the repo root. It starts the BLE-first FastAPI backend on <http://127.0.0.1:8000>, waits for it to become healthy, then starts the Vite dashboard on <http://127.0.0.1:3000>.
+
+Then open <http://127.0.0.1:3000>. The dashboard defaults to `BLE/LIVE`; the only selectable modes are `BLE/LIVE` and `MOCK`.
 
 ## Modes
 
