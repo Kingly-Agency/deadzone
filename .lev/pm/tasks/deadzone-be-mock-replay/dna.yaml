@@ -1,11 +1,11 @@
 ontology: "deadzone.pm.task.v1"
-intent: "Implement deterministic Mock and Replay backend modes so the frontend can demo crowd density, movement, alerts, provenance, reset, and replay controls without live hardware."
+intent: "Implement Replay from locally captured BLE traces and Mock derived from those traces so the frontend can demo crowd density, movement, alerts, provenance, reset, and replay controls without invented data."
 entity_kind: "backend_task"
 lifecycle_target: "execution_ready"
 acceptance:
-  - "Mock mode boots by default and emits deterministic dashboard snapshots from a seed."
-  - "Mock mode fires exactly one critical demo alert at 90 seconds per DemoSession and re-arms on reset."
-  - "Replay mode lists exactly four bundled scenarios and streams the same snapshot/envelope shape as Mock."
+  - "Mock mode is unavailable until at least one local BLE capture trace exists."
+  - "Mock mode emits deterministic dashboard snapshots derived from local BLE trace shape."
+  - "Replay mode lists locally captured BLE traces and streams the same snapshot/envelope shape as BLE."
   - "Replay controls support load, play, pause, restart, seek, and speed changes across 0.25x, 0.5x, 1x, 2x, and 4x."
 local_refs:
   - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
@@ -15,12 +15,12 @@ local_refs:
   - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
   - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/wireframes.md"
 local_constraints:
-  - "Mock and Replay are hardware-free and cross-platform."
+  - "Replay and Mock are hardware-free only after a local BLE capture has been recorded."
   - "Payload shape must remain identical across Mock, Replay, Live, and Mesh where objects overlap."
   - "Reset must not reload the page."
 source_context:
   mode: "plan"
-  summary: "The existing PM scope prioritizes mock/replay/WebSocket before live sensing; the richer UX run adds precise demo timing, replay drawer behavior, reset rules, and four scenario expectations."
+  summary: "The current objective supersedes old mock-first scope: local BLE capture is the real source, Replay reads captured traces, and Mock derives from captured trace shape."
   refs:
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mock"
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.replay"
@@ -39,6 +39,6 @@ proposal_metrics:
   unresolved: 0
 approval_source: "auto_alignment_evidence"
 auto_alignment_evidence:
-  - "deadzone-agent-task-bundle.yaml priority_rule says Mock/replay/WebSocket before live sensing."
-  - "problem_spec.yaml requires deterministic Mock and Replay modes for judge evaluation."
+  - "deadzone-agent-task-bundle.yaml priority_rule says local BLE capture first."
+  - "Current user objective requires real BLE-generated data before mock/replay."
   - "interaction_fsm.json defines the 90-second alert, reset cascade, and replay controls."

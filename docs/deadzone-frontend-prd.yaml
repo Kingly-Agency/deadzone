@@ -553,10 +553,10 @@ backend_task_compatibility:
       compatibility: "TypeScript types and fixtures map to StreamEnvelope, StreamState, IntelligenceSnapshot, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, and ReplayScenario."
     - backend_task: BE-03
       frontend_dependency: ["FE-P0-03", "FE-P0-05", "FE-P0-08"]
-      compatibility: "Mock UI expects seeded density, flow, sensor health, and deterministic alerts without identity fields."
+      compatibility: "Mock UI expects density, flow, and sensor health derived from locally captured BLE trace shape, without identity fields."
     - backend_task: BE-04
       frontend_dependency: FE-P0-07
-      compatibility: "Replay UI consumes /api/v1/replay/scenarios and /api/v1/replay/control; required scenarios are convention-crowd, concert-exit-rush, and hallway-stall."
+      compatibility: "Replay UI consumes /api/v1/replay/scenarios and /api/v1/replay/control; scenarios are opaque ids for locally captured BLE traces."
     - backend_task: BE-05
       frontend_dependency: ["FE-P0-02", "FE-P0-03", "FE-P0-05"]
       compatibility: "Snapshot-first render and sequence-aware WebSocket updates match backend broadcaster and latest-snapshot requirements."
@@ -636,7 +636,7 @@ functional_requirements:
     requirement: "When Replay mode is active, let user choose scenario, play, pause, restart, scrub/seek, and change speed."
     acceptance:
       - "Scenario list comes from GET /api/v1/replay/scenarios."
-      - "Required backend scenarios are convention-crowd, concert-exit-rush, and hallway-stall; any fourth scenario is optional."
+      - "Replay scenarios are API-provided local BLE capture traces; no bundled synthetic scenario ids are required."
       - "Replay controls call POST /api/v1/replay/control."
       - "Ended replay holds final frame and offers restart."
       - "Load errors show alternate scenarios or fallback to Mock."

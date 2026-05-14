@@ -5,7 +5,7 @@ meta:
   ux_bundle: ".lev/ux/20260514-101228-deadzone-mvp-prd/constraint_bundle.yaml"
   api_contract: ".lev/pm/specs/deadzone-api-contract.yaml"
   event_schema: ".lev/pm/specs/deadzone-event-envelope.schema.json"
-  priority_rule: "Mock/replay/WebSocket before live sensing."
+  priority_rule: "Local BLE capture first; replay and mock must derive from captured BLE traces."
 
 dependency_graph:
   - id: BE-01
@@ -60,21 +60,22 @@ backend_tasks:
       - "Tests cover snapshot envelope, alert_upsert envelope, and sensor_status envelope."
 
   - id: BE-03
-    title: "Build deterministic mock event generator"
+    title: "Build local BLE capture and privacy-safe trace recorder"
     owner: "backend-agent"
     files:
       suggested:
-        - "backend/app/sources/mock.py"
+        - "backend/app/sources/ble.py"
+        - "backend/app/traces.py"
         - "backend/app/spatial/venue.py"
-        - "backend/tests/test_mock_determinism.py"
+        - "backend/tests/test_ble_capture_privacy.py"
     scope:
-      - "Generate venue zones, density blobs, flow vectors, sensor health, and alerts from a seed."
-      - "Expose async iterator or producer API that emits aggregate snapshots at stable cadence."
-      - "Include at least one queue buildup and one hallway stall event over a short loop."
+      - "Capture local BLE advertisements using optional bleak support."
+      - "Persist only privacy-safe observations: timestamp, receiver_id, capture-scoped beacon hash, RSSI, and zone."
+      - "Never persist raw MAC addresses, stable device identifiers, or online/public datasets."
     acceptance:
-      - "Same seed produces same sequence for first 60 seconds."
-      - "At least four zones and four mock sensors are present."
-      - "Alerts can be generated without raw identity fields."
+      - "A BLE advertisement normalizes into a capture-scoped token and RSSI-derived zone."
+      - "Persisted trace files do not contain raw BLE identifiers."
+      - "Mock and replay remain unavailable until at least one local BLE trace exists."
 
   - id: BE-04
     title: "Build replay scenario engine"
@@ -82,16 +83,14 @@ backend_tasks:
     files:
       suggested:
         - "backend/app/sources/replay.py"
-        - "backend/data/replay/convention-crowd.jsonl"
-        - "backend/data/replay/concert-exit-rush.jsonl"
-        - "backend/data/replay/hallway-stall.jsonl"
+        - "backend/data/captures/{trace_id}.jsonl"
         - "backend/tests/test_replay_controls.py"
     scope:
-      - "Load named scenario files and stream deterministic events at configurable speed."
+      - "Load named local BLE capture traces and stream deterministic observations at configurable speed."
       - "Support load, play, pause, restart, seek, and set_speed."
-      - "Translate replay event observations into the same aggregate snapshot shape as mock mode."
+      - "Translate replayed BLE observations into the same aggregate snapshot shape as live BLE mode."
     acceptance:
-      - "Three scenarios are listed by /api/v1/replay/scenarios."
+      - "Captured BLE trace ids are listed by /api/v1/replay/scenarios."
       - "Replay speed changes update stream clock without corrupting sequence order."
       - "Replay end emits a stable ended/paused state usable by frontend."
 
@@ -266,4 +265,4 @@ parallelization_notes:
   avoid:
     - "Do not let FE invent payload fields outside the contract."
     - "Do not let BE expose raw device identifiers."
-    - "Do not start live BLE/Wi-Fi work before mock/replay is stable."
+      - "Do not build mock/replay from invented data before local BLE capture is stable."

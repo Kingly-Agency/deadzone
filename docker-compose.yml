@@ -4,17 +4,22 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DEADZONE_MODE: ${DEADZONE_MODE:-mock}
+      DEADZONE_MODE: ${DEADZONE_MODE:-ble}
+      DEADZONE_DATA_DIR: /app/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
       retries: 5
+    volumes:
+      - ./backend/data:/app/data
 
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      VITE_API_TARGET: http://backend:8000
     depends_on:
       - backend
     volumes:

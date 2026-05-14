@@ -9,3 +9,6 @@ dist/
 build/
 .cache/
 *.log
+backend/data/captures/*.jsonl
+backend/data/.capture_salt
+backend/.deadzone/

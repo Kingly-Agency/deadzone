@@ -8,6 +8,7 @@ COPY pyproject.toml ./
 RUN pip install --no-cache-dir fastapi "uvicorn[standard]" websockets pydantic pyyaml
 
 COPY app ./app
+RUN mkdir -p /app/data/captures
 
 EXPOSE 8000
 

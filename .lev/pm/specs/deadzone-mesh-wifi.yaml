@@ -1,0 +1,301 @@
+meta:
+  project: deadzone
+  component: mesh_wifi_satellite
+  artifact: mesh_wifi_backend_spec
+  name: "DeadZone WiFi-Faked Mesh Backend Spec"
+  version: "0.1.0"
+  status: proposed
+  created_at: 2026-05-14
+  authors:
+    - claude
+    - jean-patrick-smith
+  supersedes: null
+  related:
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+    - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml"
+  purpose: >
+    Define the standalone satellite FastAPI service (port 8001) that enables
+    WiFi-faked mesh topology testing between two laptops without LoRa hardware.
+    This spec governs backend/app/mesh/ exclusively and has zero coupling to
+    the main backend service.
+
+product_intent:
+  one_sentence: >
+    WiFi-faked mesh lets two laptops each run independent BLE scanners and
+    aggregate their crowd-density data through plain HTTP into a single
+    gateway view, honestly labeled "Mesh (WiFi)" so hackathon judges see
+    distributed sensing without pretending LoRa hardware is present.
+  primary_audience:
+    - "Hackathon judges who want to see distributed multi-node sensing without requiring $60+ in LoRa boards."
+    - "Backend engineers validating mesh topology, merge logic, and node-lifecycle management before real Meshtastic integration."
+  trust_claims:
+    - "Provenance is always 'Mesh (WiFi)', never 'Mesh (LoRa)'. The demo claim is: mesh transport simulated via WiFi; sensing is real BLE on two independent nodes."
+    - "Cross-wire payloads carry aggregates only. No raw device identifiers, beacon hashes, or RSSI samples ever leave a node."
+    - "Each node's privacy salt stays local. The gateway never learns which specific devices a node observed."
+
+architecture:
+  topology:
+    description: >
+      N node processes + 1 gateway process. Each node is a laptop running
+      `python -m app.mesh node`. The gateway is whichever laptop runs
+      `python -m app.mesh gateway`. Communication is HTTP POST of 1 Hz
+      aggregate packets from each node to the gateway.
+    node_role: >
+      Runs a local BLE scanner and aggregator. Every 1 second, produces one
+      aggregate packet summarizing local zone observations and POSTs it to
+      the gateway's /mesh/aggregate endpoint.
+    gateway_role: >
+      Receives aggregate packets from all nodes. Merges zone data across
+      nodes using configurable merge rules. Exposes /mesh/state and
+      /mesh/nodes for consumption by dashboards or the main backend.
+    diagram: |
+      ┌──────────────┐  HTTP POST /mesh/aggregate  ┌──────────────────┐
+      │  Node A       │ ────────────────────────────▶│  Gateway         │
+      │  (laptop 1)   │                              │  (laptop 1 or 2) │
+      │  BLE scanner  │                              │  FastAPI :8001   │
+      └──────────────┘                              │                  │
+      ┌──────────────┐  HTTP POST /mesh/aggregate  │  ┌────────────┐  │
+      │  Node B       │ ────────────────────────────▶│  │ MergeEngine│  │
+      │  (laptop 2)   │                              │  └────────────┘  │
+      │  BLE scanner  │                              │                  │
+      └──────────────┘                              └──────────────────┘
+  deployment:
+    service: "Standalone FastAPI app on port 8001"
+    directory: "backend/app/mesh/"
+    entrypoint_gateway: "python -m app.mesh gateway --port 8001"
+    entrypoint_node: "python -m app.mesh node --gateway http://<gateway-ip>:8001 --node-id <id>"
+    isolation: >
+      The mesh module MUST NOT import from app.main, app.runtime.engine,
+      app.api.routes, app.models, or modify pyproject.toml. It is a fully
+      standalone satellite service with its own FastAPI app instance.
+  transport_rationale:
+    why_http_not_udp_multicast: >
+      HTTP gives explicit success/fail on every POST. UDP multicast is
+      silently dropped by most enterprise/conference WiFi access points,
+      requires IGMP snooping support, and complicates firewall rules.
+      HTTP works on any WiFi network where two laptops can reach each other.
+    why_aggregate_only: >
+      Privacy: raw observations must never leave the node. Practical:
+      aggregate packets are small (~200 bytes JSON), matching real LoRa
+      payload constraints (< 256 bytes). This keeps the simulation honest
+      to the eventual hardware path.
+
+packet_contract:
+  schema_name: "deadzone.mesh.aggregate.v1"
+  description: >
+    The JSON payload a node POSTs to the gateway once per second. Contains
+    only aggregate zone summaries. No raw device identifiers ever appear.
+  shape:
+    schema: "deadzone.mesh.aggregate.v1"
+    node_id:
+      type: string
+      description: "Stable identifier for this node, set via --node-id CLI flag."
+    position:
+      type: object
+      optional: true
+      description: "Optional x/y coordinates for topology rendering on the dashboard."
+      properties:
+        x: { type: float }
+        y: { type: float }
+    timestamp:
+      type: string
+      format: ISO8601
+      description: "Node-local wall clock at packet creation."
+    uptime_s:
+      type: float
+      description: "Seconds since this node process started."
+    zones:
+      type: array
+      items:
+        zone_id: { type: string }
+        estimated_devices: { type: int, description: "Count of unique salted tokens in this zone's window." }
+        density: { type: float, description: "Devices per unit area." }
+        trend: { type: enum, values: ["rising", "stable", "falling", "spiking"] }
+        confidence: { type: float, min: 0.0, max: 1.0 }
+    freshness:
+      type: enum
+      values: ["live", "fresh", "stale", "offline"]
+      description: "Self-assessed data freshness based on scanner recency."
+    scanner_kind:
+      type: enum
+      values: ["ble", "wifi"]
+      description: "Which adapter the node is using for sensing."
+    scanner_status:
+      type: enum
+      values: ["online", "degraded", "offline", "adapter_disabled"]
+      description: "Health of the node's scanner adapter."
+  never_on_wire:
+    - "Raw BLE MAC addresses"
+    - "beacon_hash (the salted per-device token)"
+    - "RSSI samples or signal-strength readings"
+    - "Trace files or raw scan logs"
+    - "The node's privacy salt value"
+
+gateway_contract:
+  port: 8001
+  base_path: "/mesh"
+  endpoints:
+    - method: GET
+      path: "/mesh/healthz"
+      description: "Gateway liveness and summary."
+      response:
+        ok: { type: bool }
+        uptime_s: { type: float }
+        node_count: { type: int, description: "Number of nodes currently tracked (any status)." }
+        gateway_id: { type: string }
+
+    - method: POST
+      path: "/mesh/aggregate"
+      description: "Ingest one aggregate packet from a node."
+      request_body: "$ref packet_contract.shape"
+      response:
+        accepted: { type: bool }
+        last_seq: { type: int, description: "Monotonic sequence number assigned by the gateway." }
+
+    - method: GET
+      path: "/mesh/state"
+      description: "Full merged mesh snapshot for dashboard consumption."
+      response:
+        type: MeshSnapshot
+        properties:
+          nodes:
+            type: array
+            items: "$ref NodeState"
+          zones_merged:
+            type: array
+            items:
+              zone_id: { type: string }
+              estimated_devices: { type: int }
+              density: { type: float }
+              trend: { type: string }
+              confidence: { type: float }
+              contributing_nodes: { type: array, items: string }
+          mesh_links:
+            type: array
+            items:
+              source_node: { type: string }
+              target_node: { type: string }
+              shared_zones: { type: array, items: string }
+              inferred_at: { type: string, format: ISO8601 }
+          updated_at: { type: string, format: ISO8601 }
+
+    - method: GET
+      path: "/mesh/nodes"
+      description: "List of all known nodes with status."
+      response:
+        type: array
+        items:
+          type: NodeState
+          properties:
+            node_id: { type: string }
+            status: { type: enum, values: ["live", "stale", "offline"] }
+            last_seen: { type: string, format: ISO8601 }
+            latency_ms: { type: float, description: "Round-trip estimate based on receive-time minus packet timestamp." }
+            position: { type: object, optional: true, properties: { x: float, y: float } }
+
+merge_rules:
+  zone_merge:
+    strategy: "Zones are merged by zone_id across all nodes with status 'live'."
+    aggregation:
+      estimated_devices: >
+        Sum across all contributing nodes. Assumes each node sees a
+        non-overlapping device cohort. This is naive but acceptable for MVP
+        with two nodes placed in different physical areas.
+      density: "Maximum density reported by any contributing node."
+      trend: >
+        Majority vote across contributing nodes. Ties broken by preferring
+        the more urgent signal: spiking > rising > falling > stable.
+      confidence: "Minimum confidence across contributing nodes (conservative)."
+  node_lifecycle:
+    live: "Packet received within last 3 seconds."
+    stale: "No packet for 3-10 seconds. Node still shown but grayed/degraded."
+    offline: "No packet for 10+ seconds. Node removed from merge inputs."
+  mesh_links:
+    derivation: >
+      Pairwise inferred presence: if two nodes both report the same zone_id
+      in aggregate packets received within the same 1-second window, a
+      mesh_link is created between them for that zone. Links expire after
+      5 seconds of no co-observation.
+
+privacy_model:
+  principle: "Aggregate-only cross-wire. All device-level data stays on the node."
+  salt_locality: >
+    Each node generates a random privacy salt at startup. The salt is used
+    to hash raw BLE MACs into beacon_hash tokens for local deduplication.
+    The salt NEVER leaves the node process.
+  never_leaves_node:
+    - "Raw BLE MAC addresses from scanned devices"
+    - "beacon_hash (the salted per-device token used for local dedup)"
+    - "RSSI samples or raw signal-strength readings"
+    - "Trace files or raw scan event logs"
+    - "The privacy salt itself"
+  cross_wire_contains_only:
+    - "Zone-level aggregate counts (estimated_devices)"
+    - "Zone-level density and trend"
+    - "Node metadata (node_id, uptime, scanner status)"
+    - "Self-assessed freshness"
+
+failure_modes:
+  gateway_down:
+    behavior: >
+      Nodes buffer the last 60 seconds of aggregate packets in a local
+      ring buffer. On each 1-second tick, the node attempts to POST. If
+      the POST fails (connection refused, timeout, non-2xx), the packet
+      is appended to the buffer. When the gateway comes back, the node
+      drains buffered packets oldest-first before resuming live posting.
+    user_impact: "Dashboard shows no mesh data. Nodes continue scanning locally."
+
+  node_down:
+    behavior: >
+      Gateway marks the node as stale after 3 seconds, offline after 10
+      seconds. The node is excluded from zone merge inputs once offline.
+    user_impact: >
+      Dashboard shows a degraded ring or grayed-out node indicator.
+      Merged zone counts drop to reflect only remaining live nodes.
+
+  clock_skew:
+    behavior: >
+      Gateway uses its own receive-time for all ordering and staleness
+      decisions, not the node's reported timestamp. The node timestamp
+      is stored for diagnostics but never used for merge ordering.
+    rationale: >
+      Two laptops may have clocks seconds apart. Receive-time is the
+      only reliable monotonic reference on the gateway.
+
+  different_subnets:
+    behavior: >
+      If the two laptops are on different WiFi subnets (e.g., guest vs
+      corporate), HTTP POST will fail. Mitigation options:
+    mitigations:
+      - "Use a mobile hotspot to put both laptops on the same subnet."
+      - "Hardcode the gateway's IP address in the --gateway flag (no mDNS dependency)."
+      - "If mDNS is available (same subnet, Bonjour enabled), the gateway can advertise _deadzone-mesh._tcp and nodes can discover it."
+    recommendation: "Default to hardcoded IP. Document mDNS as a convenience fallback."
+
+done_criteria:
+  - id: DC-MESH-01
+    description: "`python -m app.mesh gateway --port 8001` starts a FastAPI server that responds to GET /mesh/healthz."
+  - id: DC-MESH-02
+    description: "`python -m app.mesh node --gateway http://localhost:8001 --node-id A` posts aggregate packets every 1 second."
+  - id: DC-MESH-03
+    description: "Two-node smoke test: 2 nodes + 1 gateway. GET /mesh/state returns both nodes as live with merged zone data."
+  - id: DC-MESH-04
+    description: "`pytest backend/tests/test_mesh.py` all green."
+  - id: DC-MESH-05
+    description: "Zero-coupling check: the mesh module never imports from app.main, app.runtime.engine, or app.api.routes."
+  - id: DC-MESH-06
+    description: "GET /mesh/nodes shows correct lifecycle transitions: live → stale → offline when a node stops sending."
+
+out_of_scope:
+  - item: "Real Meshtastic LoRa integration"
+    rationale: "Requires ESP32 boards (~$30-50 each) not available before tonight's demo."
+  - item: "Wiring mesh state into the main /api/v1/snapshot endpoint"
+    rationale: "Separate task for the BE agent working on the main backend. Avoids merge conflicts."
+  - item: "Frontend changes to consume /mesh/state"
+    rationale: "Separate FE task. The FE can hit /mesh/state directly or via a proxy route."
+  - item: "TLS/HTTPS encryption"
+    rationale: "Demo-grade, LAN-only. Not appropriate for production but acceptable for hackathon."
+  - item: "Authentication on POST /mesh/aggregate"
+    rationale: "Open endpoint. LAN-only assumption. Any device on the same subnet can POST, which is fine for a two-laptop demo."
+  - item: "Edits to main.py, engine.py, routes.py, models.py, sources/mesh.py, or pyproject.toml"
+    rationale: "Parallel BE agent owns those files. This mesh satellite is fully standalone."

@@ -8,8 +8,9 @@ meta:
 mvp_boundary:
   must_ship:
     - "FastAPI app with health, config, snapshot, zones, sensors, replay, and WebSocket endpoints."
-    - "Deterministic mock source with seeded density, flow, alerts, and sensor health."
-    - "Replay source with at least 3 scenarios and playback controls."
+    - "Local BLE capture source that records privacy-safe RSSI observations from this machine."
+    - "Replay source that uses locally captured BLE traces, not bundled synthetic scenarios."
+    - "Mock source derived from locally captured BLE trace shape and disabled until a trace exists."
     - "Aggregate intelligence snapshots for frontend consumption."
     - "Docker compose path that starts without hardware dependencies."
   should_ship:
@@ -26,9 +27,9 @@ runtime_architecture:
     description: "Produces normalized internal observations or aggregate scenario frames."
     modules:
       - "sources/base.py: SensorSource protocol"
-      - "sources/mock.py: deterministic aggregate generator"
-      - "sources/replay.py: replay scenario reader and clock"
-      - "sources/ble.py: optional adapter stub"
+      - "sources/ble.py: local BLE advertisement capture and normalization"
+      - "sources/replay.py: locally captured BLE trace reader and clock"
+      - "sources/mock.py: mock generator derived from captured BLE traces"
       - "sources/wifi.py: optional adapter stub"
       - "sources/mesh.py: optional adapter stub"
   intelligence_layer:
@@ -54,17 +55,17 @@ data_flow:
 
 mode_strategy:
   mock:
-    default: true
-    dependencies: []
-    behavior: "Seeded synthetic crowd pressure loop."
+    default: false
+    dependencies: ["at least one local BLE capture trace"]
+    behavior: "Seeded variation over locally captured BLE trace shape."
   replay:
     default: false
-    dependencies: ["scenario JSONL files"]
-    behavior: "Deterministic playback with controls."
+    dependencies: ["local BLE capture JSONL files"]
+    behavior: "Deterministic playback of locally captured BLE observations with controls."
   ble:
-    default: false
+    default: true
     dependencies: ["bleak", "Bluetooth permissions"]
-    behavior: "Disabled unless explicitly installed/configured."
+    behavior: "Primary real-data mode; captures local BLE advertisements into privacy-safe traces."
   wifi:
     default: false
     dependencies: ["scapy", "Linux monitor mode"]
@@ -80,20 +81,20 @@ privacy_and_data_rules:
   - "If raw observations are needed internally, hash or discard identifiers before leaving adapter scope."
   - "Do not make identity tracking part of the frontend contract."
 
-first_demo_scenarios:
-  - id: "convention-crowd"
-    story: "General traffic grows around food court and main hall."
-    required_alerts: ["queue_buildup"]
-  - id: "concert-exit-rush"
-    story: "Large movement wave flows toward exits."
-    required_alerts: ["congestion"]
-  - id: "hallway-stall"
-    story: "Movement drops while pressure rises in a corridor."
-    required_alerts: ["hallway_stall", "sensor_offline"]
+first_demo_trace_flow:
+  - id: "capture-local-ble"
+    story: "Run BLE capture from the local machine and record privacy-safe RSSI observations."
+    required_alerts: ["sensor_offline when no advertisements are observed"]
+  - id: "replay-local-capture"
+    story: "Replay the captured trace through the same aggregate snapshot pipeline."
+    required_alerts: ["queue_buildup or congestion only when captured density supports it"]
+  - id: "mock-from-local-capture"
+    story: "Generate mock variation only from the locally captured trace shape."
+    required_alerts: ["no invented density claims before capture exists"]
 
 backend_done_checks:
   - "`curl localhost:8000/health` returns ok=true."
   - "`curl localhost:8000/api/v1/snapshot` returns StreamState, Venue, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, and metrics objects."
   - "WebSocket `/ws/live` emits at least one snapshot envelope and ongoing updates."
-  - "Replay scenarios list includes convention-crowd, concert-exit-rush, and hallway-stall."
+  - "Replay scenarios list includes locally captured BLE trace ids after capture."
   - "Unavailable live adapters are represented as disabled modes, not import/startup failures."

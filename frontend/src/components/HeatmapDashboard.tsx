@@ -23,6 +23,16 @@ interface AggregateFrame {
   headline: Headline;
 }
 
+interface CaptureStatus {
+  active: boolean;
+  trace_id: string | null;
+  observations: number;
+  backend: "ble";
+  disabled_reason: string | null;
+  started_at: string | null;
+  latest_observation_at: string | null;
+}
+
 const MODE_TOKENS: Record<Mode, { color: string; label: string }> = {
   mock: { color: "#3B82F6", label: "MOCK — simulated data" },
   replay: { color: "#F59E0B", label: "REPLAY — recorded data" },
@@ -33,9 +43,19 @@ const MODE_TOKENS: Record<Mode, { color: string; label: string }> = {
 export function HeatmapDashboard({
   frame,
   connected,
+  capture,
+  captureBusy,
+  captureError,
+  onStartCapture,
+  onStopCapture,
 }: {
   frame: AggregateFrame | null;
   connected: boolean;
+  capture: CaptureStatus | null;
+  captureBusy: boolean;
+  captureError: string | null;
+  onStartCapture: () => void;
+  onStopCapture: () => void;
 }) {
   const mode: Mode = frame?.mode ?? "mock";
   const token = MODE_TOKENS[mode];
@@ -63,6 +83,29 @@ export function HeatmapDashboard({
         )}
       </section>
 
+      <section className="permission-strip">
+        <div>
+          <div className="permission-kicker">Bluetooth capture</div>
+          <div className="permission-title">{captureTitle(capture, captureError)}</div>
+          <div className="permission-detail">{captureDetail(capture, captureError)}</div>
+        </div>
+        <div className="permission-actions">
+          {capture?.active ? (
+            <button type="button" onClick={onStopCapture} disabled={captureBusy}>
+              Stop scan
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onStartCapture}
+              disabled={captureBusy || Boolean(capture?.disabled_reason)}
+            >
+              {captureBusy ? "Starting…" : "Start BLE scan"}
+            </button>
+          )}
+        </div>
+      </section>
+
       <main className="canvas-and-rail">
         <div className="canvas">
           {frame ? (
@@ -84,6 +127,27 @@ export function HeatmapDashboard({
       </footer>
     </div>
   );
+}
+
+function captureTitle(capture: CaptureStatus | null, error: string | null): string {
+  if (error) return "Capture status needs attention";
+  if (!capture) return "Checking Bluetooth";
+  if (capture.disabled_reason) return "Permission launcher required";
+  if (capture.active) return "Live scan running";
+  return "Ready for live scan";
+}
+
+function captureDetail(capture: CaptureStatus | null, error: string | null): string {
+  if (error) return error;
+  if (!capture) return "Waiting for backend status.";
+  if (capture.disabled_reason) return capture.disabled_reason;
+  if (capture.active) {
+    return `${capture.observations.toLocaleString()} observations captured in ${capture.trace_id ?? "current trace"}.`;
+  }
+  if (capture.trace_id) {
+    return `${capture.observations.toLocaleString()} observations saved in ${capture.trace_id}.`;
+  }
+  return "The next scan may open the macOS Bluetooth prompt.";
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

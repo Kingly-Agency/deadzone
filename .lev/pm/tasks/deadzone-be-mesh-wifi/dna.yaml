@@ -1,0 +1,41 @@
+ontology: "deadzone.pm.task.v1"
+intent: "Implement a WiFi-faked Meshtastic alternative where two laptops each run a local BLE scanner and aggregator, POST zone-aggregate packets to a gateway laptop via plain HTTP, proving multi-node mesh sensing with real BLE and simulated transport."
+entity_kind: "backend_task"
+lifecycle_target: "execution_ready"
+acceptance:
+  - "Two nodes each scan BLE locally, aggregate per-zone counts, and POST aggregate packets to the gateway over plain HTTP."
+  - "Gateway merges multi-node aggregates into a unified MeshSnapshot with stale detection per node."
+  - "No raw BLE hashes leave any node; only salted zone-aggregate counts cross the wire."
+  - "Standalone FastAPI satellite on port 8001 with /mesh/healthz, /mesh/state, /mesh/nodes, and /mesh/aggregate endpoints."
+  - "Zero edits to main.py, engine.py, routes.py, models.py, sources/mesh.py, or pyproject.toml."
+local_refs:
+  - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
+local_constraints:
+  - "All new code lives in backend/app/mesh/; no modifications to the main backend application."
+  - "Cross-wire transport uses stdlib urllib only; no additional dependencies."
+  - "Salt stays local on each node; only aggregate counts are transmitted."
+  - "Real Meshtastic, main /api/v1/snapshot wiring, FE changes, auth, and HTTPS are out of scope."
+source_context:
+  mode: "plan"
+  summary: "WiFi-faked mesh proves multi-node crowd sensing with real BLE on two laptops and HTTP-simulated transport, living as a standalone satellite that cannot conflict with the parallel base backend agent."
+  refs:
+    - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
+  confidence: 0.95
+  inferred_without_design_file: false
+execution_slice_map: "execution.yaml:slices"
+grouping_reason: "All slices serve a single deliverable: the standalone WiFi-faked mesh satellite with models, transport, gateway, node, app, tests, and runbook."
+proposal_metrics:
+  frame_completeness: 1.0
+  slice_readiness: 0.95
+  determinism: 1.0
+  verification_strength: 0.9
+  dna_awareness: 0.95
+  unresolved: 0
+approval_source: "auto_alignment_evidence"
+auto_alignment_evidence:
+  - "Standalone mesh satellite avoids all file conflicts with the parallel base backend task."
+  - "Demo claim is honest: mesh transport simulated via WiFi, sensing is real BLE on two nodes."
+  - "Privacy-first: aggregate-only across wire, salt stays local, no raw hashes leave node."

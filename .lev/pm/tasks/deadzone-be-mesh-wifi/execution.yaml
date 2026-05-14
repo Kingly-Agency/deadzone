@@ -1,0 +1,456 @@
+topology: "cascade"
+runtime_profile: "codex-backend-mesh-wifi"
+validation_chain:
+  - frame_complete_gate
+  - plan_alignment_gate
+  - convergence_gate
+  - slice_verticality_gate
+  - slice_alignment_gate
+  - feedback_loop_gate
+  - cold_start_context_gate
+  - adversarial_constraint_gate
+  - execution_ready_gate
+receipt_policy: "append_only"
+checkpoint_policy: "forward_only"
+budget:
+  max_iterations: 3
+  timeout: "4h"
+exit_conditions:
+  - "pytest backend/tests/test_mesh.py passes all tests without live hardware."
+  - "Gateway merges packets from two simulated nodes and exposes unified MeshSnapshot."
+  - "Zero files outside backend/app/mesh/ and backend/tests/test_mesh.py are modified."
+slices:
+  - id: "mesh-wifi-01-models"
+    title: "Define Pydantic models for mesh WiFi transport"
+    focus: "Shared data contracts for node heartbeats, aggregate packets, mesh snapshots, and node state."
+    type: "AFK"
+    blocked_by: []
+    behavior_coverage:
+      - "NodeHeartbeat"
+      - "AggregatePacket"
+      - "MeshSnapshot"
+      - "MeshNodeState"
+    acceptance:
+      - "NodeHeartbeat, AggregatePacket, MeshSnapshot, and MeshNodeState are importable Pydantic models."
+      - "AggregatePacket carries zone-level counts only; no raw BLE hashes."
+      - "MeshNodeState includes node_id, last_seen, is_stale, and zone_counts."
+    what_to_build: "Create backend/app/mesh/models.py with NodeHeartbeat, AggregatePacket, MeshSnapshot, and MeshNodeState Pydantic models."
+    why_this_slice: "All other slices depend on shared model definitions; models-first enables parallel work on transport, gateway, and node."
+    acceptance_criteria:
+      - "Models validate correct payloads and reject malformed ones."
+      - "No raw hash fields exist in any wire-facing model."
+      - "Models are importable from backend.app.mesh.models."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+      known_reds:
+        - "Models must not include any field for raw BLE MAC or hash data."
+      forbidden_moves:
+        - "Do not add fields that carry per-device identifiers across the wire."
+        - "Do not import from the main backend app modules."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd backend && python -m pytest tests/test_mesh.py -v -k models"
+      inputs:
+        - "model instantiation with valid and invalid data"
+      outputs:
+        - "Passing model validation tests"
+      pass_fail: "Pass when all model tests pass and no raw hash fields exist."
+    stages:
+      - id: "stage-model-defs"
+        action: "Define NodeHeartbeat, AggregatePacket, MeshSnapshot, and MeshNodeState."
+        verify: "pytest tests/test_mesh.py -k models"
+    write_scope:
+      - "deadzone/backend/app/mesh/__init__.py"
+      - "deadzone/backend/app/mesh/models.py"
+    constraints:
+      - "No raw BLE hash or MAC fields in wire-facing models."
+      - "No imports from main backend app."
+    failure_modes:
+      - "Raw device identifiers leak through model fields."
+      - "Model schema incompatible with gateway aggregation."
+    verify: "cd backend && python -m pytest tests/test_mesh.py -v -k models"
+    gates:
+      - slice_verticality_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Privacy constraint requires aggregate-only wire models."
+
+  - id: "mesh-wifi-02-transport"
+    title: "Implement HTTP POST transport client with retry and buffer"
+    focus: "Reliable delivery of aggregate packets from node to gateway over plain HTTP using stdlib urllib."
+    type: "AFK"
+    blocked_by:
+      - "mesh-wifi-01-models"
+    behavior_coverage:
+      - "HTTP POST to gateway"
+      - "retry on failure"
+      - "local buffer on sustained failure"
+    acceptance:
+      - "Transport POSTs AggregatePacket JSON to gateway /mesh/aggregate endpoint."
+      - "Retries up to 3 times with backoff on transient failure."
+      - "Buffers unsent packets locally when gateway is unreachable."
+      - "Uses only stdlib urllib; no requests or httpx."
+    what_to_build: "Create backend/app/mesh/transport.py with MeshTransport class using urllib for HTTP POST, retry logic, and a local send buffer."
+    why_this_slice: "Transport decouples node scanning from gateway availability and ensures no data loss during brief network interruptions."
+    acceptance_criteria:
+      - "Successful POST returns True and clears buffer."
+      - "Failed POST after retries buffers the packet and returns False."
+      - "Buffered packets are resent on next successful connection."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+      known_reds:
+        - "stdlib urllib has different error types than requests; handle URLError and HTTPError."
+      forbidden_moves:
+        - "Do not add requests, httpx, or any third-party HTTP client."
+        - "Do not send raw BLE data through transport."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd backend && python -m pytest tests/test_mesh.py -v -k transport"
+      inputs:
+        - "mock HTTP server responses"
+        - "simulated network failures"
+      outputs:
+        - "Passing transport retry and buffer tests"
+      pass_fail: "Pass when retry, buffer, and resend logic tests all pass."
+    stages:
+      - id: "stage-post-client"
+        action: "Implement urllib-based POST client for AggregatePacket."
+        verify: "pytest tests/test_mesh.py -k post"
+      - id: "stage-retry-buffer"
+        action: "Add retry with backoff and local packet buffer."
+        verify: "pytest tests/test_mesh.py -k retry"
+    write_scope:
+      - "deadzone/backend/app/mesh/transport.py"
+    constraints:
+      - "stdlib urllib only; no third-party HTTP libraries."
+      - "Payload is always AggregatePacket; never raw BLE data."
+    failure_modes:
+      - "Silent packet loss when gateway is down."
+      - "Unbounded buffer growth exhausts memory."
+      - "Third-party HTTP dependency added."
+    verify: "cd backend && python -m pytest tests/test_mesh.py -v -k transport"
+    gates:
+      - slice_verticality_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Stdlib-only constraint from task brief."
+
+  - id: "mesh-wifi-03-gateway"
+    title: "Build in-memory gateway aggregator with stale detection"
+    focus: "Merge aggregate packets from multiple nodes into a unified MeshSnapshot with per-node staleness tracking."
+    type: "AFK"
+    blocked_by:
+      - "mesh-wifi-01-models"
+    behavior_coverage:
+      - "multi-node packet merge"
+      - "per-node stale detection"
+      - "unified MeshSnapshot"
+    acceptance:
+      - "Gateway ingests AggregatePackets from multiple node_ids and merges zone counts."
+      - "Nodes not seen for 30 seconds are marked stale in MeshSnapshot."
+      - "MeshSnapshot includes list of active nodes, stale nodes, and merged zone counts."
+      - "Gateway state is queryable via get_snapshot() method."
+    what_to_build: "Create backend/app/mesh/gateway.py with MeshGateway class that accepts aggregate packets, tracks per-node state, detects staleness, and produces MeshSnapshot."
+    why_this_slice: "The gateway is the central aggregation point; it must correctly merge multi-node data and surface node health."
+    acceptance_criteria:
+      - "Two-node merge produces correct combined zone counts."
+      - "Stale node is flagged but not removed from snapshot."
+      - "Snapshot timestamp reflects latest ingestion."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+      known_reds:
+        - "Use monotonic clock for stale detection to avoid wall-clock drift."
+      forbidden_moves:
+        - "Do not persist state to disk; in-memory only for MVP."
+        - "Do not import from main backend modules."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd backend && python -m pytest tests/test_mesh.py -v -k gateway"
+      inputs:
+        - "aggregate packets from two simulated nodes"
+        - "time-advanced stale scenarios"
+      outputs:
+        - "Passing gateway merge and stale detection tests"
+      pass_fail: "Pass when multi-node merge is correct and stale detection triggers at 30 seconds."
+    stages:
+      - id: "stage-ingest-merge"
+        action: "Implement packet ingestion and multi-node zone count merge."
+        verify: "pytest tests/test_mesh.py -k merge"
+      - id: "stage-stale-detect"
+        action: "Add per-node stale detection with configurable threshold."
+        verify: "pytest tests/test_mesh.py -k stale"
+    write_scope:
+      - "deadzone/backend/app/mesh/gateway.py"
+    constraints:
+      - "In-memory only; no disk persistence."
+      - "Stale threshold defaults to 30 seconds."
+    failure_modes:
+      - "Zone counts double-counted from same node on resubmit."
+      - "Stale detection uses wall clock and drifts."
+      - "Snapshot omits stale nodes entirely."
+    verify: "cd backend && python -m pytest tests/test_mesh.py -v -k gateway"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Multi-node merge is the core gateway responsibility."
+
+  - id: "mesh-wifi-04-node"
+    title: "Implement BLE scanner, aggregator, and 1 Hz POST loop for mesh node"
+    focus: "Each node scans BLE, aggregates zone counts locally with salted hashing, and POSTs aggregate packets at 1 Hz."
+    type: "AFK"
+    blocked_by:
+      - "mesh-wifi-01-models"
+      - "mesh-wifi-02-transport"
+    behavior_coverage:
+      - "BLE scan on node"
+      - "local salt and aggregation"
+      - "1 Hz POST loop"
+    acceptance:
+      - "Node scans BLE advertisements and aggregates per-zone device counts."
+      - "Salt is generated locally per node session; raw MACs never leave the node."
+      - "Node POSTs AggregatePacket to gateway at 1 Hz via MeshTransport."
+      - "Node operates independently; gateway downtime does not crash the node."
+    what_to_build: "Create backend/app/mesh/node.py with MeshNode class that wraps BLE scanning, local salted aggregation, and a 1 Hz transport loop."
+    why_this_slice: "The node is the sensing unit; it must scan, aggregate privately, and transmit reliably."
+    acceptance_criteria:
+      - "Node produces AggregatePacket with zone counts and no raw hashes."
+      - "1 Hz loop continues through transport failures."
+      - "Different node instances produce different salts."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+      known_reds:
+        - "BLE scanning requires bleak which may not be installed; handle import gracefully."
+      forbidden_moves:
+        - "Do not transmit raw BLE MACs or unsalted hashes."
+        - "Do not block the POST loop on BLE scan failures."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd backend && python -m pytest tests/test_mesh.py -v -k node"
+      inputs:
+        - "mock BLE scan results"
+        - "mock transport"
+      outputs:
+        - "Passing node aggregation and loop tests"
+      pass_fail: "Pass when node aggregates correctly and POST loop is resilient."
+    stages:
+      - id: "stage-scan-aggregate"
+        action: "Implement BLE scan wrapper and local salted aggregation."
+        verify: "pytest tests/test_mesh.py -k aggregate"
+      - id: "stage-post-loop"
+        action: "Implement 1 Hz POST loop with transport integration."
+        verify: "pytest tests/test_mesh.py -k loop"
+    write_scope:
+      - "deadzone/backend/app/mesh/node.py"
+    constraints:
+      - "Salt is per-session, never shared, never transmitted."
+      - "bleak import is optional and lazy."
+    failure_modes:
+      - "Raw MAC addresses transmitted to gateway."
+      - "POST loop crashes on transport failure."
+      - "All nodes share the same salt."
+    verify: "cd backend && python -m pytest tests/test_mesh.py -v -k node"
+    gates:
+      - slice_verticality_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Privacy-first: salt stays local, only aggregates cross the wire."
+
+  - id: "mesh-wifi-05-app-endpoints"
+    title: "Create FastAPI satellite app with mesh endpoints"
+    focus: "Standalone FastAPI app on port 8001 exposing health, state, node list, and aggregate ingestion endpoints."
+    type: "AFK"
+    blocked_by:
+      - "mesh-wifi-01-models"
+      - "mesh-wifi-03-gateway"
+    behavior_coverage:
+      - "/mesh/healthz"
+      - "/mesh/state"
+      - "/mesh/nodes"
+      - "/mesh/aggregate"
+    acceptance:
+      - "GET /mesh/healthz returns 200 with status ok."
+      - "GET /mesh/state returns current MeshSnapshot."
+      - "GET /mesh/nodes returns list of known MeshNodeState entries."
+      - "POST /mesh/aggregate accepts AggregatePacket and ingests into gateway."
+      - "App runs on port 8001 independently of the main backend on port 8000."
+    what_to_build: "Create backend/app/mesh/app.py with a standalone FastAPI application and four endpoints backed by MeshGateway, plus backend/app/mesh/__main__.py for CLI entry."
+    why_this_slice: "The app is the integration point that exposes gateway state and accepts node packets over HTTP."
+    acceptance_criteria:
+      - "All four endpoints return correct status codes and response shapes."
+      - "POST /mesh/aggregate with valid AggregatePacket returns 200."
+      - "POST /mesh/aggregate with invalid payload returns 422."
+      - "App starts via python -m backend.app.mesh on port 8001."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+      known_reds:
+        - "fastapi and uvicorn are already in project deps; no new dependencies needed."
+      forbidden_moves:
+        - "Do not modify the main backend FastAPI app or its routes."
+        - "Do not bind to port 8000."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd backend && python -m pytest tests/test_mesh.py -v -k app"
+      inputs:
+        - "TestClient requests to all four endpoints"
+      outputs:
+        - "Passing endpoint response tests"
+      pass_fail: "Pass when all endpoint tests return expected status codes and response shapes."
+    stages:
+      - id: "stage-fastapi-app"
+        action: "Create FastAPI app with healthz, state, nodes, and aggregate routes."
+        verify: "pytest tests/test_mesh.py -k endpoints"
+      - id: "stage-cli-entry"
+        action: "Create __main__.py for python -m backend.app.mesh entry."
+        verify: "pytest tests/test_mesh.py -k cli"
+    write_scope:
+      - "deadzone/backend/app/mesh/app.py"
+      - "deadzone/backend/app/mesh/__main__.py"
+    constraints:
+      - "Standalone app on port 8001; no shared state with main backend."
+      - "Uses fastapi and uvicorn already in project deps."
+    failure_modes:
+      - "Port conflict with main backend on 8000."
+      - "Endpoints return wrong response schema."
+      - "Main backend routes.py accidentally modified."
+    verify: "cd backend && python -m pytest tests/test_mesh.py -v -k app"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Standalone satellite on port 8001 avoids all conflict with main backend."
+
+  - id: "mesh-wifi-06-tests-runbook"
+    title: "Write mesh test suite and two-laptop test runbook"
+    focus: "Comprehensive pytest suite and a README documenting the two-laptop smoke test procedure."
+    type: "AFK"
+    blocked_by:
+      - "mesh-wifi-01-models"
+      - "mesh-wifi-02-transport"
+      - "mesh-wifi-03-gateway"
+      - "mesh-wifi-04-node"
+      - "mesh-wifi-05-app-endpoints"
+    behavior_coverage:
+      - "unit tests for all mesh modules"
+      - "integration test for two-node scenario"
+      - "runbook documentation"
+    acceptance:
+      - "pytest backend/tests/test_mesh.py passes all tests without live hardware or network."
+      - "Tests cover models, transport, gateway, node, and app endpoints."
+      - "Two-node integration test simulates gateway receiving packets from two nodes."
+      - "README.md documents the two-laptop physical test procedure."
+    what_to_build: "Create backend/tests/test_mesh.py with unit and integration tests for all mesh modules, and backend/app/mesh/README.md with the two-laptop smoke test runbook."
+    why_this_slice: "Tests validate the satellite works in CI without hardware; the runbook enables the physical two-laptop demo."
+    acceptance_criteria:
+      - "All tests pass with python -m pytest tests/test_mesh.py -v."
+      - "No test requires network access or BLE hardware."
+      - "README includes step-by-step commands for both gateway and node laptops."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+      known_reds:
+        - "Mock all BLE and network I/O in tests."
+      forbidden_moves:
+        - "Do not write tests that require live network or BLE hardware."
+        - "Do not modify any test files outside backend/tests/test_mesh.py."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd backend && python -m pytest tests/test_mesh.py -v"
+      inputs:
+        - "all mesh modules with mocked I/O"
+      outputs:
+        - "All tests passing"
+      pass_fail: "Pass when all tests pass and no test requires hardware."
+    stages:
+      - id: "stage-unit-tests"
+        action: "Write unit tests for models, transport, gateway, node."
+        verify: "pytest tests/test_mesh.py -k 'models or transport or gateway or node'"
+      - id: "stage-integration-test"
+        action: "Write two-node integration test."
+        verify: "pytest tests/test_mesh.py -k integration"
+      - id: "stage-runbook"
+        action: "Write backend/app/mesh/README.md with two-laptop test procedure."
+        verify: "test -f backend/app/mesh/README.md"
+    write_scope:
+      - "deadzone/backend/tests/test_mesh.py"
+      - "deadzone/backend/app/mesh/README.md"
+    constraints:
+      - "All tests must be hardware-free and network-free."
+      - "Runbook must be reproducible on two macOS laptops."
+    failure_modes:
+      - "Tests pass locally but fail in CI due to hardware dependency."
+      - "Runbook has missing steps or wrong port numbers."
+    verify: "cd backend && python -m pytest tests/test_mesh.py -v"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Verifier command from task brief: cd backend && python -m pytest tests/test_mesh.py -v"
+
+  - id: "mesh-wifi-07-spec"
+    title: "Write mesh WiFi spec with done criteria"
+    focus: "Acceptance spec that defines done_criteria referenced by this task's DNA."
+    type: "AFK"
+    blocked_by: []
+    behavior_coverage:
+      - "done_criteria definition"
+      - "spec-task linkage"
+    acceptance:
+      - "Spec at .lev/pm/specs/deadzone-mesh-wifi.yaml defines done_criteria for the WiFi-faked mesh feature."
+      - "done_criteria align with task DNA acceptance items."
+      - "Spec documents the honest demo claim."
+    what_to_build: "Create .lev/pm/specs/deadzone-mesh-wifi.yaml with feature description, done_criteria, privacy constraints, and architecture notes."
+    why_this_slice: "The spec provides the acceptance reference that the task DNA and all slices point to."
+    acceptance_criteria:
+      - "Spec is valid YAML and importable by lev tooling."
+      - "done_criteria cover multi-node sensing, privacy, and standalone satellite requirements."
+    operator_context:
+      exact_inputs: []
+      known_reds: []
+      forbidden_moves:
+        - "Do not define criteria that require real Meshtastic hardware."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "python -c \"import yaml; yaml.safe_load(open('.lev/pm/specs/deadzone-mesh-wifi.yaml'))\""
+      inputs:
+        - "spec YAML file"
+      outputs:
+        - "Valid YAML parse"
+      pass_fail: "Pass when spec parses as valid YAML."
+    stages:
+      - id: "stage-write-spec"
+        action: "Write deadzone-mesh-wifi.yaml spec with done_criteria."
+        verify: "python -c \"import yaml; yaml.safe_load(open('.lev/pm/specs/deadzone-mesh-wifi.yaml'))\""
+    write_scope:
+      - "deadzone/.lev/pm/specs/deadzone-mesh-wifi.yaml"
+    constraints:
+      - "Must align with task DNA acceptance."
+    failure_modes:
+      - "Spec criteria diverge from task DNA acceptance."
+    verify: "python -c \"import yaml; yaml.safe_load(open('.lev/pm/specs/deadzone-mesh-wifi.yaml'))\""
+    gates:
+      - slice_verticality_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "Task DNA references this spec for acceptance criteria."

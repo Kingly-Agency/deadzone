@@ -35,8 +35,8 @@ source_map:
 
 source_resolution:
   - issue: "Scenario count differs between existing PM scope and richer UX run."
-    decision: "Ship exactly four bundled replay scenarios for FE controls: convention-crowd, concert-exit-rush, hallway-stall, stadium-ingress."
-    rationale: "Existing backend scope requires three named scenarios; the richer UX run names a fourth stadium path in the replay picker. Four covers both without ambiguity."
+    decision: "Do not ship invented replay scenarios; list locally captured BLE traces as replay scenarios after capture."
+    rationale: "The current objective requires real BLE-generated data first, then replay/mock derived from our own captured data."
   - issue: "Mode names differ between API contract and UX copy."
     decision: "Backend enum remains [mock, replay, ble, wifi, mesh, hybrid]; FE copy groups ble and wifi under Live while mesh remains Mesh."
     rationale: "The API needs adapter-level precision; the UI needs judge-readable provenance."
@@ -96,27 +96,27 @@ frontend_dependency_contract:
 
 modes:
   mock:
-    priority: 1
-    default_on_first_boot: true
+    priority: 3
+    default_on_first_boot: false
     requirements:
-      - "Seeded synthetic crowd density, flow vectors, alerts, and sensor health."
-      - "Same seed produces the same first 60 seconds of snapshots."
-      - "Exactly one critical demo alert fires at 90 seconds per DemoSession unless reset re-arms it."
-      - "Eight simulated sensor nodes are available for topology drill-down."
+      - "Unavailable until at least one local BLE capture trace exists."
+      - "Seeded variation must derive from captured BLE observation shape, not online or invented datasets."
+      - "Mock payloads keep the same IntelligenceSnapshot shape as BLE and replay modes."
     frontend_copy: "MOCK -- simulated data"
   replay:
     priority: 2
     requirements:
-      - "Four bundled replay scenarios: convention-crowd, concert-exit-rush, hallway-stall, stadium-ingress."
+      - "Replay scenarios are local BLE capture trace ids."
       - "Controls support load, play, pause, restart, seek, and speed 0.25x, 0.5x, 1x, 2x, 4x."
-      - "Replay frames emit the same IntelligenceSnapshot shape as mock and live sources."
+      - "Replay frames emit the same IntelligenceSnapshot shape as BLE live capture and mock-derived modes."
       - "Replay state is usable as fallback when live or mesh stalls and a cached buffer exists."
     frontend_copy: "REPLAY -- recorded data"
   live:
-    priority: 3
+    priority: 1
     backend_modes: ["ble", "wifi", "hybrid"]
     requirements:
-      - "BLE and Wi-Fi adapters are optional dependencies and never block startup."
+      - "BLE is the primary real-data path and records local advertisements to privacy-safe traces."
+      - "Wi-Fi adapters are optional dependencies and never block startup."
       - "Unavailable adapters appear in /api/v1/config disabled_modes with explicit reasons."
       - "No raw MAC address or stable device identifier is persisted or returned."
       - "No frame for 30 seconds marks data stale; 60 seconds offers replay fallback."
@@ -168,11 +168,11 @@ acceptance:
     statement: "WS /ws/live emits snapshot, zone_update, alert_upsert, sensor_status, flow_update, replay_state, and error envelopes with monotonic sequence."
     evidence_refs: ["deadzone-event-envelope.schema.json", "interaction_fsm.json global transitions"]
   - id: A4
-    statement: "Mock mode starts by default, paints first useful frame within two seconds after page load, and produces a deterministic 90-second alert."
+    statement: "BLE mode starts by default; mock remains unavailable until a local BLE trace exists, then derives from that trace shape."
     evidence_refs: ["task_graph.json task-1-land", "interaction_fsm.json screen-alerts-panel"]
   - id: A5
-    statement: "Replay mode lists four scenarios and supports load, play, pause, restart, seek, and speed changes without changing payload shape."
-    evidence_refs: ["task_graph.json task-4-trigger-replay-scenario", "deadzone-backend-scope.yaml first_demo_scenarios"]
+    statement: "Replay mode lists locally captured BLE trace ids and supports load, play, pause, restart, seek, and speed changes without changing payload shape."
+    evidence_refs: ["task_graph.json task-4-trigger-replay-scenario", "deadzone-backend-scope.yaml first_demo_trace_flow"]
   - id: A6
     statement: "Mode provenance, freshness, disabled reasons, and stale/offline states are visible through API fields and stream events."
     evidence_refs: ["constraint_bundle.yaml", "user_and_agent_research.md C2/D5"]

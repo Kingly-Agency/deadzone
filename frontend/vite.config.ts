@@ -1,15 +1,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const apiTarget = process.env.VITE_API_TARGET ?? "http://127.0.0.1:8000";
+const wsTarget = apiTarget.replace(/^http/, "ws");
+
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
     host: true,
     proxy: {
-      "/ws": { target: "ws://backend:8000", ws: true, changeOrigin: true },
-      "/healthz": { target: "http://backend:8000", changeOrigin: true },
-      "/modes": { target: "http://backend:8000", changeOrigin: true },
+      "/ws": { target: wsTarget, ws: true, changeOrigin: true },
+      "/healthz": { target: apiTarget, changeOrigin: true },
+      "/health": { target: apiTarget, changeOrigin: true },
+      "/modes": { target: apiTarget, changeOrigin: true },
+      "/api": { target: apiTarget, changeOrigin: true },
     },
   },
 });

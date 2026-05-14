@@ -39,11 +39,12 @@ slices:
     why_this_slice: "The FE and judges need a reliable first-load demo before replay files or hardware adapters matter."
     acceptance_criteria:
       - "Skeleton can be replaced by first mock snapshot inside the FE's two-second target under local dev conditions."
-      - "Mock topology contains eight simulated nodes with mock provenance."
+      - "Mock topology is derived from the local BLE scanner and captured trace provenance."
       - "Mock source produces density, flow, sensor health, and alert-ready frames."
     operator_context:
       exact_inputs:
-        - "DEADZONE_MODE=mock"
+        - "DEADZONE_MODE=ble"
+        - "backend/data/captures/{trace_id}.jsonl"
         - "DEADZONE_SEED default value from settings"
         - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mock"
       known_reds:
@@ -183,40 +184,37 @@ slices:
       - "task-4-trigger-replay-scenario"
       - "task-2-switch-mode"
     acceptance:
-      - "GET /api/v1/replay/scenarios lists convention-crowd, concert-exit-rush, hallway-stall, and stadium-ingress."
+      - "GET /api/v1/replay/scenarios lists locally captured BLE trace ids."
       - "POST /api/v1/replay/control supports load, play, pause, restart, seek, and set_speed."
       - "Speed values are restricted to 0.25, 0.5, 1, 2, and 4."
       - "Replay emits snapshot and replay_state envelopes without sequence corruption."
-    what_to_build: "Implement replay scenario files, replay clock/control state, scenario reader, and stream integration that produces the same IntelligenceSnapshot shape as Mock."
-    why_this_slice: "Replay is both a demo mode and regression test source for FE, so it must be deterministic and controllable."
+    what_to_build: "Implement locally captured BLE trace replay, replay clock/control state, trace reader, and stream integration that produces the same IntelligenceSnapshot shape as BLE and Mock."
+    why_this_slice: "Replay is both a demo mode and regression test source for FE, but it must be grounded in locally captured BLE data."
     acceptance_criteria:
       - "Scenario corrupt state returns recoverable ErrorResponse and keeps scenario picker usable."
       - "Playback complete pauses at final frame and offers restart state through StreamState."
       - "Switching away from replay stops playback and closes replay-specific stream state cleanly."
     operator_context:
       exact_inputs:
-        - "backend/data/replay/convention-crowd.jsonl"
-        - "backend/data/replay/concert-exit-rush.jsonl"
-        - "backend/data/replay/hallway-stall.jsonl"
-        - "backend/data/replay/stadium-ingress.jsonl"
+        - "backend/data/captures/{trace_id}.jsonl"
         - "ReplayControlRequest"
       known_reds:
         - "Scenario fixture format can be JSONL or structured JSON if tests and API docs agree."
       forbidden_moves:
-        - "Do not make replay scenarios require real captured files for MVP."
+        - "Do not invent replay scenario files before local BLE capture exists."
         - "Do not change ZoneAggregate or StreamEnvelope shape in replay mode."
       hitl_protocol: "No HITL required."
     verifier_contract:
       command: "cd deadzone && pytest backend/tests/test_replay_controls.py backend/tests/test_replay_scenarios.py"
       inputs:
-        - "four bundled replay scenario files"
+        - "locally captured BLE trace files"
         - "Replay control requests"
       outputs:
         - "Passing replay scenario and control tests"
       pass_fail: "Pass when all scenarios load, controls update StreamState, and sequence order remains monotonic."
     stages:
       - id: "stage-scenario-files"
-        action: "Create four bundled replay scenarios with deterministic event frames."
+        action: "List locally captured BLE traces as replay scenarios."
         verify: "pytest backend/tests/test_replay_scenarios.py"
       - id: "stage-replay-clock"
         action: "Implement replay play/pause/restart/seek/speed clock."

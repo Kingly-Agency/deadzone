@@ -74,7 +74,7 @@ paths:
 
   /api/v1/replay/scenarios:
     get:
-      summary: Return bundled deterministic replay scenarios.
+      summary: Return locally captured BLE traces available for replay.
       operationId: listReplayScenarios
       responses:
         "200":
@@ -109,6 +109,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/capture/start:
+    post:
+      summary: Start local BLE advertisement capture into a privacy-safe trace.
+      operationId: startBleCapture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptureStartRequest"
+      responses:
+        "200":
+          description: Capture started.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureStatus"
+        "409":
+          description: BLE dependency or permission is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureStatus"
+
+  /api/v1/capture/stop:
+    post:
+      summary: Stop local BLE capture.
+      operationId: stopBleCapture
+      responses:
+        "200":
+          description: Capture status after stopping.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureStatus"
+
+  /api/v1/capture/status:
+    get:
+      summary: Return current local BLE capture status.
+      operationId: getBleCaptureStatus
+      responses:
+        "200":
+          description: Capture status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureStatus"
 
 x-websocket:
   endpoint: /ws/live
@@ -284,7 +332,7 @@ components:
           type: integer
         source_label:
           type: string
-          example: "Replay: convention-crowd"
+          example: "Replay: local BLE trace ble-20260514-120000"
         freshness:
           type: string
           enum: [live, fresh, stale, offline]
@@ -299,6 +347,17 @@ components:
               type: number
             speed:
               type: number
+        playback_state:
+          type: string
+          enum: [idle, playing, paused, ended]
+          nullable: true
+        scenario_id:
+          type: string
+          nullable: true
+          description: Opaque replay scenario id for a locally captured BLE trace.
+        duration_s:
+          type: number
+          nullable: true
 
     Venue:
       type: object
@@ -491,7 +550,7 @@ components:
       properties:
         id:
           type: string
-          example: convention-crowd
+          example: ble-20260514-120000
         name:
           type: string
         description:
@@ -518,3 +577,38 @@ components:
           type: number
         speed:
           type: number
+
+    CaptureStartRequest:
+      type: object
+      properties:
+        trace_id:
+          type: string
+          description: Optional local operator label; API responses use opaque ids.
+        duration_s:
+          type: number
+
+    CaptureStatus:
+      type: object
+      required: [active, observations, backend]
+      properties:
+        active:
+          type: boolean
+        trace_id:
+          type: string
+          nullable: true
+        observations:
+          type: integer
+        backend:
+          type: string
+          const: ble
+        disabled_reason:
+          type: string
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        latest_observation_at:
+          type: string
+          format: date-time
+          nullable: true
