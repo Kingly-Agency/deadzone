@@ -16,7 +16,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from math import sin, pi
 from typing import Protocol, runtime_checkable
 
