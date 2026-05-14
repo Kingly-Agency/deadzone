@@ -1,0 +1,250 @@
+meta:
+  source: ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel"
+  confidence: synthetic
+  pipeline_version: "ux-v1"
+  generated: "2026-05-14T10:27:00Z"
+
+problem: |
+  Hackathon judges need to verify in 5 minutes that a passive-RF crowd-intelligence
+  platform actually works — not just animates. DeadZone packages a Mock-to-Mesh
+  progression behind a single `docker compose up`, with honest data provenance so
+  skeptics can drill into sensing, and headline metrics so generalists grasp it in
+  30 seconds. Aggregate-only telemetry, deterministic demo, cross-platform.
+
+primary_jobs:
+  - id: job-1-glance
+    statement: "Assess capability in 30s from page load (heatmap + headline metric + mode badge)"
+    priority: 1
+  - id: job-2-trust
+    statement: "Distinguish real sensing from canned demos via honest, switchable modes"
+    priority: 1
+  - id: job-3-act
+    statement: "Get zone-level numeric occupancy + trend on click (Operator path)"
+    priority: 1
+  - id: job-4-rehearse
+    statement: "Deterministic Mock with reset-without-reload + guaranteed 90s alert"
+    priority: 1
+  - id: job-5-validate-coverage
+    statement: "See coverage gaps + sensor health in topology overlay"
+    priority: 2
+
+entities:
+  - name: Venue
+    primary_action: view
+  - name: Zone
+    attributes: [name, current_count, capacity, trend_5m, density]
+    primary_action: inspect
+  - name: Sensor
+    attributes: [id, type, health, last_seen, rssi_sample]
+    primary_action: drill_raw
+  - name: Mode
+    attributes: [id, label, color_token, availability]
+    primary_action: activate
+  - name: Scenario
+    primary_action: play
+  - name: Alert
+    attributes: [severity, zone_id, message, fired_at, acknowledged]
+    primary_action: acknowledge
+  - name: DemoSession
+    primary_action: reset
+
+relationships:
+  - {from: Venue, to: Zone, cardinality: "1:N", ownership: contains}
+  - {from: Zone, to: Sensor, cardinality: "N:M", ownership: references}
+  - {from: Sensor, to: Event, cardinality: "1:N", ownership: contains}
+  - {from: Zone, to: Alert, cardinality: "1:N", ownership: contains}
+  - {from: Mode, to: Scenario, cardinality: "1:N (when=replay)", ownership: references}
+  - {from: DemoSession, to: Scenario, cardinality: "1:1", ownership: references}
+
+modes:
+  mock:
+    description: "Synthetic deterministic playback for judging. Default on first load."
+    when_to_use: "Hackathon demo, rehearsal, color-blind validation"
+    badge: "MOCK -- simulated data (blue)"
+  replay:
+    description: "Recorded real event streams (concert exit, hallway, stadium ingress)"
+    when_to_use: "Skeptic judge wants to see real data shape"
+    badge: "REPLAY -- recorded data (amber)"
+  live:
+    description: "Live BLE/Wi-Fi sensing on the laptop. Best-effort cross-platform."
+    when_to_use: "Strong-demo bonus; degrades to Replay if stream stalls"
+    badge: "LIVE -- real-time sensing (green)"
+  mesh:
+    description: "Multi-node Meshtastic LoRa relay. Stretch."
+    when_to_use: "Outdoor / no-Wi-Fi venues (festivals, marathons)"
+    badge: "MESH -- distributed sensors (purple)"
+
+navigation:
+  primary: ["Dashboard (single screen)"]
+  secondary:
+    - "Zone Detail (slide-in panel)"
+    - "Sensor Topology (toggle overlay + side panel)"
+    - "Replay Scenario Picker (bottom drawer)"
+    - "Settings (popover)"
+  principle: "Single-screen with progressive disclosure. Spectator ignores everything but heatmap + metric bar; Investigator and Operator reveal overlays on demand."
+
+layout_constraints:
+  - id: LC-1
+    constraint: "Heatmap must include persistent color legend with unit label AND headline-metrics bar (total occupancy, peak zone, trend arrow) above the fold"
+    priority: P0
+    source: "C1, C5 (all 5 personas)"
+  - id: LC-2
+    constraint: "Active data mode must be indicated by a persistent badge in all views: color-coded (mock=blue, replay=amber, live=green, mesh=purple) + plain-language label"
+    priority: P0
+    source: "C2 (all 5 personas)"
+  - id: LC-3
+    constraint: "Every panel defines three states: loading (skeleton), empty (meaningful zero-state copy), populated. No panel may ever render as blank white space."
+    priority: P0
+    source: "C4 (all 5 personas)"
+  - id: LC-4
+    constraint: "Mock mode triggers at least one alert within 90s of load. AlertsPanel empty-state shows 'No active alerts -- system nominal', never blank."
+    priority: P0
+    source: "C3 (Dana, Raj, Kenji, Maria)"
+  - id: LC-5
+    constraint: "Heatmap palette WCAG AA: viridis or plasma + threshold pattern overlay at critical levels. No red-green-only encoding."
+    priority: P1
+    source: "E3, AP-4 (Maria, accessibility)"
+  - id: LC-6
+    constraint: "Mode switch transition = crossfade 300ms. No white flash. No page reload anywhere in the app."
+    priority: P0
+    source: "Kenji (demo-resilience) + LC-3"
+  - id: LC-7
+    constraint: "Sensor topology is a TOGGLE overlay on the heatmap, not a separate screen. Coverage gaps use diagonal hatch pattern, not just absence."
+    priority: P1
+    source: "D2 (Dana skip vs Raj/Tomasz drill); Maria 'show me the gap'"
+
+anti_patterns:
+  - id: AP-1
+    pattern: "Page reload to reset demo"
+    why_bad: "Judge-arrives-mid-demo recovery is critical; reload risks WebSocket reconnect delay"
+    mitigation: "R key + discreet reset icon; in-memory timeline rewind"
+  - id: AP-2
+    pattern: "Mock data presented without provenance label"
+    why_bad: "Skeptic Investigators (Raj, Tomasz) will penalize and may disqualify"
+    mitigation: "Persistent ProvenanceBadge in header, never hidden"
+  - id: AP-3
+    pattern: "Heatmap without legend + units"
+    why_bad: "All 5 personas asked 'what do the colors mean / what's the unit?'"
+    mitigation: "Legend is required composition for HeatmapLayer (enforced at component level)"
+  - id: AP-4
+    pattern: "Red-green only color encoding for density"
+    why_bad: "8% of male users color-blind; Maria's assistant cited directly"
+    mitigation: "Viridis palette + pattern overlay at threshold; ColorBlindToggle in Settings"
+  - id: AP-5
+    pattern: "Wi-Fi-dependent dead-Wi-Fi-zone detection (without addressing irony)"
+    why_bad: "Raj flagged as either brilliant or fatal. Without explanation, defaults to fatal."
+    mitigation: "Pitch addresses head-on; Mesh/BLE modes prove independence; demo shows graceful degradation"
+  - id: AP-6
+    pattern: "White flash during mode switch"
+    why_bad: "Reads as crash to judge; Kenji's primary anxiety"
+    mitigation: "Crossfade 300ms; skeleton overlay during data swap"
+  - id: AP-7
+    pattern: "Sensor topology front-and-center for all users"
+    why_bad: "Spectator (Dana) sees it as noise; reduces glance comprehension"
+    mitigation: "Collapsible toggle overlay; default-off on first load"
+  - id: AP-8
+    pattern: "Alert panel renders blank when no alerts"
+    why_bad: "Reads as broken / disconnected feature"
+    mitigation: "Always show zero-state copy: 'No active alerts -- system nominal'"
+
+design_tokens:
+  palette:
+    density_ramp: viridis (perceptually uniform, color-blind safe)
+    mode_mock: "#3B82F6 (blue-500)"
+    mode_replay: "#F59E0B (amber-500)"
+    mode_live: "#10B981 (emerald-500)"
+    mode_mesh: "#8B5CF6 (violet-500)"
+    severity_info: "#3B82F6"
+    severity_warn: "#F59E0B"
+    severity_critical: "#EF4444 + diagonal pattern overlay (AP-4)"
+  fonts:
+    body: "Inter, system-ui"
+    mono: "JetBrains Mono (raw event tails, timestamps)"
+  type_scale: "12 / 14 / 16 / 20 / 28 / 40"
+  spacing_scale: "4 / 8 / 12 / 16 / 24 / 32 / 48"
+  contrast_target: "WCAG AA (4.5:1 body, 3:1 large text)"
+
+user_types:
+  - id: spectator
+    label: "Spectator (Glanceable)"
+    needs: "Instant comprehension, headline metric, minimal controls, guaranteed wow moment"
+    default_mode: mock
+    surface: "Hide mode dropdown by default; expose via header chip click only"
+  - id: investigator
+    label: "Investigator (Drill-Down)"
+    needs: "Mode switching prominent, raw event tail, sensor topology access"
+    default_mode: replay
+    surface: "Mode chip emphasized; Topology toggle 1-click accessible"
+  - id: operator
+    label: "Operator (Action-Oriented)"
+    needs: "Zone numbers, trend, alert severity + ack, coverage gap visibility"
+    default_mode: live
+    surface: "Zone-detail panel deep linkable; alerts panel always visible"
+  - id: developer
+    label: "Developer (Demo-Resilient)"
+    needs: "Seeded RNG, R-key reset, graceful Live->Replay fallback"
+    default_mode: mock
+    surface: "Keyboard hint row in Settings; reset works without reload"
+
+research_signal:
+  convergence:
+    - "Heatmap intuitive + needs legend/units (5/5 personas)"
+    - "Mode labeling must be persistent and unmissable (5/5)"
+    - "Empty/loading states perceived as broken (5/5)"
+    - "Headline metric beats gradient alone (4/5 — Dana, Maria, Tomasz, Kenji)"
+    - "Demo must guarantee one alert in 5 min window (4/5 — Dana, Raj, Maria, Kenji)"
+  tensions:
+    - "Mode visibility: hide for Spectator vs surface for Investigator -> auto-select + secondary control"
+    - "Topology: skip vs drill -> collapsible toggle overlay"
+    - "Alert depth: dramatic-one vs severity/ack -> MVP shows simple severity, ack visual-only"
+    - "Provenance: don't-care vs disqualifying -> always show, subtle by default"
+    - "Degradation: seamless vs explicit -> seamless in Mock/Replay, explicit in Live/Mesh"
+  gate_decision: proceed
+
+immediate_build_order:
+  - "Mock event generator with seeded RNG + 90s alert event"
+  - "AppShell + Header (brand + ModeChip + ProvenanceBadge + Reset)"
+  - "HeatmapLayer + Legend (Leaflet + Heatmap.js)"
+  - "HeadlineMetricsBar (above-the-fold numeric)"
+  - "AlertsPanel with non-empty zero state"
+  - "WebSocket pipeline + Replay engine"
+  - "ZoneOverlay click handler -> ZoneDetail slide-in"
+  - "ModeDropdown with availability indicators + crossfade transition"
+  - "Reset (R key + button) without page reload"
+  - "Topology toggle overlay + SensorDetailCard"
+  - "BLE scanner adapter (Bleak) for Live mode"
+  - "Mesh transport (post-MVP, stretch)"
+
+validation_rubric:
+  bundle_checks:
+    - check: "Every layout_constraint with P0 priority has a matching anti_pattern"
+      pass_if: "LC-1..LC-4 + LC-6 each have at least one AP that references the same source/concern"
+      severity: must
+    - check: "Mode tokens cover all 4 modes referenced in problem statement"
+      pass_if: "design_tokens.palette has mode_mock, mode_replay, mode_live, mode_mesh AND modes section has all four entries"
+      severity: must
+    - check: "Every user_type has a default_mode that exists in modes section"
+      pass_if: "user_types[*].default_mode subset-of {mock, replay, live, mesh}"
+      severity: must
+    - check: "primary_jobs are ranked by priority and at least 3 are priority=1"
+      pass_if: "len([j for j in primary_jobs if j.priority == 1]) >= 3"
+      severity: should
+    - check: "anti_patterns list >= 3 (mandatory per skill spec)"
+      pass_if: "len(anti_patterns) >= 3"
+      severity: must
+    - check: "WCAG AA palette is specified (LC-5)"
+      pass_if: "design_tokens.contrast_target mentions WCAG AA AND palette.density_ramp is viridis or plasma"
+      severity: must
+  run_checks:
+    - check: "All Step 1-7 artifacts exist in RUN_DIR"
+      pass_if: "problem_spec.yaml, jobs.graph.json, task_graph.json, ia_schema.json, interaction_fsm.json, components.md, wireframes.md all present and non-empty"
+      severity: must
+    - check: "Synthetic research gate_decision is proceed (not abort)"
+      pass_if: "user_and_agent_research.md contains 'gate_decision: proceed' or 'gate_decision** proceed'"
+      severity: must
+    - check: "Wireframes include at least 5 state variants for the Dashboard screen"
+      pass_if: "wireframes.md Screen 1 section contains loading, empty, error, populated, stale variants"
+      severity: should
+    - check: "Components inventory enforces composition rule that HeatmapLayer requires Legend"
+      pass_if: "components.md composition rules section mentions 'HeatmapLayer' and 'Legend' co-requirement"
+      severity: should

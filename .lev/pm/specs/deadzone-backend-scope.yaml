@@ -1,0 +1,99 @@
+meta:
+  project: deadzone
+  component: backend
+  purpose: "Backend implementation scope for the hackathon MVP."
+  api_contract: ".lev/pm/specs/deadzone-api-contract.yaml"
+  task_bundle: ".lev/pm/plans/deadzone-agent-task-bundle.yaml"
+
+mvp_boundary:
+  must_ship:
+    - "FastAPI app with health, config, snapshot, zones, sensors, replay, and WebSocket endpoints."
+    - "Deterministic mock source with seeded density, flow, alerts, and sensor health."
+    - "Replay source with at least 3 scenarios and playback controls."
+    - "Aggregate intelligence snapshots for frontend consumption."
+    - "Docker compose path that starts without hardware dependencies."
+  should_ship:
+    - "Adapter interface and disabled-mode responses for BLE, Wi-Fi, and Mesh."
+    - "Contract tests for response and WebSocket envelope shapes."
+    - "Fallback snapshot endpoint for frontend reconnect recovery."
+  stretch:
+    - "BLE adapter using optional dependency loading."
+    - "Meshtastic gateway adapter with compact telemetry summaries."
+    - "SQLite persistence for replay/debug traces."
+
+runtime_architecture:
+  source_layer:
+    description: "Produces normalized internal observations or aggregate scenario frames."
+    modules:
+      - "sources/base.py: SensorSource protocol"
+      - "sources/mock.py: deterministic aggregate generator"
+      - "sources/replay.py: replay scenario reader and clock"
+      - "sources/ble.py: optional adapter stub"
+      - "sources/wifi.py: optional adapter stub"
+      - "sources/mesh.py: optional adapter stub"
+  intelligence_layer:
+    description: "Turns observations/frames into stable dashboard objects."
+    modules:
+      - "spatial/venue.py: static venue zones and coordinates"
+      - "spatial/aggregate.py: density, pressure, confidence, trend"
+      - "spatial/alerts.py: congestion, queue, stall, sensor offline heuristics"
+      - "spatial/flow.py: movement vectors"
+  delivery_layer:
+    description: "Serves REST snapshots and WebSocket envelopes."
+    modules:
+      - "api/routes.py: REST endpoints"
+      - "api/ws.py: WebSocket connection manager"
+      - "runtime/engine.py: source selection, clock, latest snapshot, broadcaster"
+
+data_flow:
+  - "SensorSource emits internal observations or scenario frames."
+  - "Aggregator updates zone density, pressure_score, trend, and confidence."
+  - "Heuristics upsert alerts and sensor health."
+  - "Runtime composes IntelligenceSnapshot."
+  - "REST exposes latest snapshot; WebSocket broadcasts StreamEnvelope messages."
+
+mode_strategy:
+  mock:
+    default: true
+    dependencies: []
+    behavior: "Seeded synthetic crowd pressure loop."
+  replay:
+    default: false
+    dependencies: ["scenario JSONL files"]
+    behavior: "Deterministic playback with controls."
+  ble:
+    default: false
+    dependencies: ["bleak", "Bluetooth permissions"]
+    behavior: "Disabled unless explicitly installed/configured."
+  wifi:
+    default: false
+    dependencies: ["scapy", "Linux monitor mode"]
+    behavior: "Disabled by default; do not block startup."
+  mesh:
+    default: false
+    dependencies: ["meshtastic", "serial/device access"]
+    behavior: "Disabled by default; topology can be mocked."
+
+privacy_and_data_rules:
+  - "Never persist raw MAC addresses or stable device identifiers."
+  - "Expose aggregate density, pressure, movement, and sensor health only."
+  - "If raw observations are needed internally, hash or discard identifiers before leaving adapter scope."
+  - "Do not make identity tracking part of the frontend contract."
+
+first_demo_scenarios:
+  - id: "convention-crowd"
+    story: "General traffic grows around food court and main hall."
+    required_alerts: ["queue_buildup"]
+  - id: "concert-exit-rush"
+    story: "Large movement wave flows toward exits."
+    required_alerts: ["congestion"]
+  - id: "hallway-stall"
+    story: "Movement drops while pressure rises in a corridor."
+    required_alerts: ["hallway_stall", "sensor_offline"]
+
+backend_done_checks:
+  - "`curl localhost:8000/health` returns ok=true."
+  - "`curl localhost:8000/api/v1/snapshot` returns StreamState, Venue, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, and metrics objects."
+  - "WebSocket `/ws/live` emits at least one snapshot envelope and ongoing updates."
+  - "Replay scenarios list includes convention-crowd, concert-exit-rush, and hallway-stall."
+  - "Unavailable live adapters are represented as disabled modes, not import/startup failures."

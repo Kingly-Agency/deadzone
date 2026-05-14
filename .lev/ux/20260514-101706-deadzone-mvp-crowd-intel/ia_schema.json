@@ -1,0 +1,72 @@
+{
+  "entities": [
+    {
+      "name": "Venue",
+      "attributes": ["id", "name", "floorplan_url", "zones[]", "capacity"],
+      "actions": ["view", "switch_floorplan"]
+    },
+    {
+      "name": "Zone",
+      "attributes": ["id", "name", "polygon", "current_count", "capacity", "trend_5m", "density"],
+      "actions": ["inspect", "set_threshold (operator only)", "filter_alerts"]
+    },
+    {
+      "name": "Sensor",
+      "attributes": ["id", "type (ble|wifi|mesh)", "position", "health", "battery", "last_seen", "rssi_sample", "raw_event_tail[]"],
+      "actions": ["inspect", "show_coverage", "drill_raw"]
+    },
+    {
+      "name": "Mode",
+      "attributes": ["id (mock|replay|live|mesh)", "label", "color_token", "availability", "data_source_description"],
+      "actions": ["activate", "fallback_to"]
+    },
+    {
+      "name": "Scenario",
+      "attributes": ["id", "name", "duration_s", "event_count", "tags[]"],
+      "actions": ["play", "scrub", "set_speed"]
+    },
+    {
+      "name": "Alert",
+      "attributes": ["id", "severity (info|warn|critical)", "zone_id", "message", "fired_at", "acknowledged", "rule_summary"],
+      "actions": ["view", "acknowledge", "highlight_zone"]
+    },
+    {
+      "name": "Event",
+      "attributes": ["timestamp", "sensor_id", "rssi", "device_type", "zone_id"],
+      "actions": ["stream", "replay"],
+      "note": "Raw telemetry, aggregate-only in display layer; never expose device identifiers"
+    },
+    {
+      "name": "DemoSession",
+      "attributes": ["started_at", "elapsed_s", "scenario_id", "seed", "reset_count"],
+      "actions": ["reset", "pause"],
+      "note": "Local to viewer, controls Mock determinism and reset-without-reload"
+    }
+  ],
+  "relationships": [
+    {"from": "Venue", "to": "Zone", "type": "has_many", "ownership": "contains"},
+    {"from": "Zone", "to": "Sensor", "type": "covered_by", "cardinality": "N:M"},
+    {"from": "Sensor", "to": "Event", "type": "emits", "cardinality": "1:N"},
+    {"from": "Zone", "to": "Alert", "type": "raises", "cardinality": "1:N"},
+    {"from": "Mode", "to": "Scenario", "type": "uses_when=replay", "cardinality": "1:N"},
+    {"from": "Mode", "to": "Sensor", "type": "uses_when=live|mesh", "cardinality": "1:N"},
+    {"from": "DemoSession", "to": "Scenario", "type": "plays", "cardinality": "1:1"},
+    {"from": "Alert", "to": "Zone", "type": "references", "cardinality": "1:1"}
+  ],
+  "navigation": {
+    "primary": [
+      "Dashboard (heatmap + metrics + alerts)"
+    ],
+    "secondary": [
+      "Zone Detail (slide-in panel from heatmap click)",
+      "Sensor Topology (toggle overlay + side panel)",
+      "Replay Scenario Picker (drawer when Mode=Replay)",
+      "Settings (popover: palette, thresholds, demo session)"
+    ],
+    "global_chrome": [
+      "Header: brand + Mode chip + Reset + Topology toggle + Settings",
+      "Footer: connection status + last frame timestamp + version"
+    ],
+    "principle": "Single-screen dashboard. All secondary nav is overlays/panels, never page transitions. Spectator can ignore everything but the heatmap + metric bar; Investigator and Operator progressively reveal via overlays."
+  }
+}

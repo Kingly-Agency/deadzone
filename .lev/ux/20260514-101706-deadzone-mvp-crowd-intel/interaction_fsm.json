@@ -1,0 +1,1062 @@
+{
+  "meta": {
+    "step": 5,
+    "name": "interaction_fsm",
+    "pipeline": "DeadZone MVP Crowd Intelligence UX",
+    "date": "2026-05-14",
+    "sources": ["ia_schema.json", "task_graph.json", "user_and_agent_research.md"],
+    "constraint_refs": ["C1", "C2", "C3", "C4", "C5", "AP-1", "AP-2", "AP-3", "AP-4", "AP-5"]
+  },
+  "screens": [
+    {
+      "id": "screen-dashboard",
+      "name": "Dashboard (Heatmap + Metrics Bar)",
+      "states": [
+        "booting",
+        "connecting",
+        "loading",
+        "empty",
+        "populated",
+        "stale",
+        "error",
+        "demo_reset_pending"
+      ],
+      "transitions": [
+        {
+          "from": "booting",
+          "event": "app_mount",
+          "to": "connecting",
+          "side_effects": ["render_skeleton", "show_mode_badge_mock"],
+          "duration_budget_ms": 200
+        },
+        {
+          "from": "connecting",
+          "event": "ws_open",
+          "to": "loading",
+          "side_effects": ["show_connecting_spinner_in_footer"],
+          "timeout_ms": 5000,
+          "timeout_to": "error"
+        },
+        {
+          "from": "connecting",
+          "event": "ws_error",
+          "to": "error",
+          "side_effects": ["show_banner_connection_failed", "offer_retry_button"]
+        },
+        {
+          "from": "loading",
+          "event": "first_frame_received",
+          "to": "populated",
+          "side_effects": ["crossfade_skeleton_to_heatmap_300ms", "render_headline_metrics", "render_legend_with_units", "start_mock_timer_if_mock_mode"]
+        },
+        {
+          "from": "loading",
+          "event": "frame_timeout_10s",
+          "to": "empty",
+          "side_effects": ["show_empty_state_awaiting_data"]
+        },
+        {
+          "from": "populated",
+          "event": "ws_frame",
+          "to": "populated",
+          "side_effects": ["update_heatmap_incremental", "update_headline_metrics"],
+          "note": "Self-loop for continuous data"
+        },
+        {
+          "from": "populated",
+          "event": "no_frame_30s",
+          "to": "stale",
+          "side_effects": ["add_stale_badge_to_mode_chip", "show_stale_timestamp_footer"],
+          "applies_to_modes": ["live", "mesh"]
+        },
+        {
+          "from": "stale",
+          "event": "ws_frame",
+          "to": "populated",
+          "side_effects": ["remove_stale_badge", "update_heatmap_incremental"]
+        },
+        {
+          "from": "stale",
+          "event": "stale_timeout_60s",
+          "to": "stale",
+          "side_effects": ["show_toast_replay_fallback_offer"],
+          "note": "Offers: 'Switch to Replay (last 5min cached) | Retry Live | Dismiss'. Per task-8-handle-degradation."
+        },
+        {
+          "from": "stale",
+          "event": "user_accepts_fallback",
+          "to": "loading",
+          "side_effects": ["switch_mode_to_replay", "crossfade_300ms", "load_cached_buffer"]
+        },
+        {
+          "from": "stale",
+          "event": "user_dismisses_fallback",
+          "to": "stale",
+          "side_effects": ["persist_stale_indicator", "keep_last_known_data_visible"],
+          "note": "Dashboard continues with last-known state per D5 resolution"
+        },
+        {
+          "from": "populated",
+          "event": "mode_switch",
+          "to": "loading",
+          "side_effects": ["crossfade_out_300ms", "show_skeleton_for_new_mode", "update_mode_badge"],
+          "note": "No white flash. Crossfade transition per C4/Kenji concern."
+        },
+        {
+          "from": "error",
+          "event": "retry_click",
+          "to": "connecting",
+          "side_effects": ["clear_error_banner", "render_skeleton"]
+        },
+        {
+          "from": "error",
+          "event": "ws_open",
+          "to": "loading",
+          "side_effects": ["clear_error_banner", "show_reconnecting_toast"]
+        },
+        {
+          "from": "empty",
+          "event": "first_frame_received",
+          "to": "populated",
+          "side_effects": ["crossfade_skeleton_to_heatmap_300ms", "render_headline_metrics"]
+        },
+        {
+          "from": "demo_reset_pending",
+          "event": "reset_confirmed",
+          "to": "loading",
+          "side_effects": ["fade_heatmap_to_t0_400ms", "clear_all_alerts", "restart_mock_timer", "rearm_90s_alert", "show_toast_reset_demo_timeline_2s"]
+        },
+        {
+          "from": "demo_reset_pending",
+          "event": "reset_cancelled",
+          "to": "populated",
+          "side_effects": ["dismiss_reset_modal"]
+        }
+      ],
+      "feedback": [
+        "skeleton (full-canvas placeholder with pulsing zone outlines)",
+        "crossfade (300ms opacity transition between data states)",
+        "banner (connection errors, degradation notices)",
+        "toast (reset confirmation, fallback offers)",
+        "badge_pulse (mode chip warning ring when stale)",
+        "stale_watermark (semi-transparent 'STALE' overlay on heatmap)"
+      ],
+      "accessibility": [
+        "aria-live=polite on headline-metrics bar for screen reader updates",
+        "role=img on heatmap canvas with aria-label describing current occupancy summary",
+        "legend uses text labels not color-only (viridis palette per AP-4)",
+        "focus ring on clickable zone polygons",
+        "skip-to-alerts landmark link for keyboard navigation"
+      ],
+      "notes": "Primary surface. Always visible. Heatmap + headline metrics (C5) + persistent legend with units (C1) + mode badge (C2). Every state has visual content, never blank white space (C4/LC-3)."
+    },
+    {
+      "id": "screen-zone-detail",
+      "name": "Zone Detail (Slide-in Panel)",
+      "states": [
+        "closed",
+        "opening",
+        "loading",
+        "empty",
+        "populated",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "closed",
+          "event": "zone_click",
+          "to": "opening",
+          "side_effects": ["highlight_zone_polygon_thick_outline", "slide_panel_in_from_right_250ms"]
+        },
+        {
+          "from": "opening",
+          "event": "animation_complete",
+          "to": "loading",
+          "side_effects": ["render_panel_skeleton_with_zone_name"]
+        },
+        {
+          "from": "loading",
+          "event": "zone_data_received",
+          "to": "populated",
+          "side_effects": ["render_count_capacity_trend_sparkline", "render_zone_alerts_list"]
+        },
+        {
+          "from": "loading",
+          "event": "zone_data_empty",
+          "to": "empty",
+          "side_effects": ["show_awaiting_sensor_reports_with_last_seen_ts"],
+          "note": "Per task-3 failure mode: sparse data gets dots instead of line"
+        },
+        {
+          "from": "loading",
+          "event": "zone_data_error",
+          "to": "error",
+          "side_effects": ["show_error_unable_to_load_zone"]
+        },
+        {
+          "from": "populated",
+          "event": "zone_data_update",
+          "to": "populated",
+          "side_effects": ["animate_count_change", "update_sparkline", "update_trend_arrow"]
+        },
+        {
+          "from": "populated",
+          "event": "alert_fired_for_zone",
+          "to": "populated",
+          "side_effects": ["prepend_alert_to_zone_alerts_list", "flash_severity_border_2s"]
+        },
+        {
+          "from": "populated",
+          "event": "close_click_or_esc",
+          "to": "closed",
+          "side_effects": ["slide_panel_out_200ms", "remove_zone_highlight"]
+        },
+        {
+          "from": "empty",
+          "event": "zone_data_received",
+          "to": "populated",
+          "side_effects": ["crossfade_empty_to_populated_200ms"]
+        },
+        {
+          "from": "empty",
+          "event": "close_click_or_esc",
+          "to": "closed",
+          "side_effects": ["slide_panel_out_200ms", "remove_zone_highlight"]
+        },
+        {
+          "from": "error",
+          "event": "retry_click",
+          "to": "loading",
+          "side_effects": ["render_panel_skeleton_with_zone_name"]
+        },
+        {
+          "from": "error",
+          "event": "close_click_or_esc",
+          "to": "closed",
+          "side_effects": ["slide_panel_out_200ms", "remove_zone_highlight"]
+        },
+        {
+          "from": "populated",
+          "event": "different_zone_click",
+          "to": "loading",
+          "side_effects": ["crossfade_panel_content_200ms", "highlight_new_zone", "remove_old_zone_highlight"]
+        }
+      ],
+      "feedback": [
+        "skeleton (zone name header + shimmer placeholders for count, sparkline, alerts)",
+        "slide_animation (right-edge slide-in 250ms ease-out, slide-out 200ms)",
+        "trend_arrow (animated up/down/flat icon next to count)",
+        "severity_border_flash (panel border pulses alert severity color for 2s)"
+      ],
+      "accessibility": [
+        "focus_trap_while_open (tab cycles within panel, Esc closes)",
+        "aria-label on panel: 'Zone detail for {zone_name}'",
+        "aria-live=assertive for alert injections into zone panel",
+        "sparkline has sr-only text: 'Trend over last 5 minutes: rising/falling/stable'",
+        "close button is first focusable element"
+      ],
+      "notes": "Slide-in from right on zone click. Shows: zone name, current count, % capacity, 5-min trend sparkline, zone-specific alerts. Operator-only 'Set threshold' control hidden for Spectator user type."
+    },
+    {
+      "id": "screen-topology",
+      "name": "Sensor Topology (Overlay + Side Panel)",
+      "states": [
+        "hidden",
+        "loading",
+        "empty",
+        "populated",
+        "sensor_selected",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "hidden",
+          "event": "topology_toggle_click",
+          "to": "loading",
+          "side_effects": ["render_overlay_skeleton", "show_side_panel_skeleton", "dim_heatmap_40pct"]
+        },
+        {
+          "from": "loading",
+          "event": "sensor_list_received",
+          "to": "populated",
+          "side_effects": ["render_sensor_nodes_with_health_color", "render_coverage_gaps_hatch_pattern", "crossfade_skeleton_300ms"]
+        },
+        {
+          "from": "loading",
+          "event": "sensor_list_empty",
+          "to": "empty",
+          "side_effects": ["show_no_sensors_discovered_message"],
+          "note": "Mock mode: show 8 simulated nodes with mock badge. Live mode: 'No sensors discovered. Check BLE permissions.' + diagnostic link (per task-6)."
+        },
+        {
+          "from": "loading",
+          "event": "sensor_list_error",
+          "to": "error",
+          "side_effects": ["show_topology_load_error"]
+        },
+        {
+          "from": "populated",
+          "event": "sensor_node_click",
+          "to": "sensor_selected",
+          "side_effects": ["highlight_sensor_node", "show_sensor_detail_in_side_panel", "render_raw_event_tail_10"]
+        },
+        {
+          "from": "sensor_selected",
+          "event": "sensor_node_click",
+          "to": "sensor_selected",
+          "side_effects": ["switch_highlight_to_new_sensor", "update_side_panel_detail"],
+          "note": "Click different sensor while one is selected"
+        },
+        {
+          "from": "sensor_selected",
+          "event": "deselect_click_or_esc",
+          "to": "populated",
+          "side_effects": ["remove_sensor_highlight", "show_sensor_list_summary_in_side_panel"]
+        },
+        {
+          "from": "populated",
+          "event": "sensor_health_change",
+          "to": "populated",
+          "side_effects": ["animate_node_color_change_500ms", "update_health_summary_count"]
+        },
+        {
+          "from": "sensor_selected",
+          "event": "selected_sensor_goes_offline",
+          "to": "sensor_selected",
+          "side_effects": ["node_turns_red", "show_offline_badge_in_detail", "flash_last_seen_timestamp"]
+        },
+        {
+          "from": ["populated", "sensor_selected"],
+          "event": "topology_toggle_click",
+          "to": "hidden",
+          "side_effects": ["fade_out_overlay_200ms", "close_side_panel", "restore_heatmap_opacity"]
+        },
+        {
+          "from": "empty",
+          "event": "sensor_discovered",
+          "to": "populated",
+          "side_effects": ["render_sensor_node_with_pulse_animation"]
+        },
+        {
+          "from": "empty",
+          "event": "topology_toggle_click",
+          "to": "hidden",
+          "side_effects": ["fade_out_overlay_200ms", "restore_heatmap_opacity"]
+        },
+        {
+          "from": "error",
+          "event": "retry_click",
+          "to": "loading",
+          "side_effects": ["render_overlay_skeleton"]
+        },
+        {
+          "from": "error",
+          "event": "topology_toggle_click",
+          "to": "hidden",
+          "side_effects": ["fade_out_overlay_200ms", "restore_heatmap_opacity"]
+        }
+      ],
+      "feedback": [
+        "skeleton (node placeholders pulsing on map overlay)",
+        "health_colors (green=healthy, amber=degraded, red=offline per Tomasz requirement)",
+        "coverage_gap_hatch (diagonal line pattern on uncovered areas per Maria concern)",
+        "node_pulse (new sensor discovery animation)",
+        "detail_panel_slide (sensor detail slides within the side panel region)"
+      ],
+      "accessibility": [
+        "sensor nodes are role=button with aria-label: '{sensor_type} sensor {id}, status: {health}'",
+        "coverage gaps have aria-label: 'Coverage gap area, no active sensors'",
+        "side panel uses aria-live=polite for sensor detail updates",
+        "keyboard: arrow keys navigate between sensor nodes when overlay focused",
+        "high-contrast mode: nodes use shape (circle=healthy, triangle=degraded, square=offline) in addition to color"
+      ],
+      "notes": "Collapsible overlay per D2 resolution. Spectator can ignore; Investigator/Operator toggle to inspect. Shows sensor health (green/amber/red), battery, last-seen, RSSI, raw event tail. Coverage gaps use hatch pattern (not color-only, per AP-4)."
+    },
+    {
+      "id": "screen-replay-picker",
+      "name": "Replay Scenario Picker (Drawer)",
+      "states": [
+        "closed",
+        "loading",
+        "empty",
+        "populated",
+        "scenario_playing",
+        "scenario_paused",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "closed",
+          "event": "mode_set_to_replay",
+          "to": "loading",
+          "side_effects": ["slide_drawer_down_from_header_250ms", "render_scenario_list_skeleton"]
+        },
+        {
+          "from": "loading",
+          "event": "scenarios_loaded",
+          "to": "populated",
+          "side_effects": ["render_scenario_cards_with_thumbnails", "crossfade_skeleton_200ms"]
+        },
+        {
+          "from": "loading",
+          "event": "scenarios_empty",
+          "to": "empty",
+          "side_effects": ["show_no_scenarios_found_with_sample_fallback"],
+          "note": "Per task-4 failure mode: show 'Sample scenarios' fallback list"
+        },
+        {
+          "from": "loading",
+          "event": "scenarios_load_error",
+          "to": "error",
+          "side_effects": ["show_unable_to_load_scenarios"]
+        },
+        {
+          "from": "populated",
+          "event": "scenario_select",
+          "to": "scenario_playing",
+          "side_effects": ["load_scenario_data_skeleton_400ms", "show_scrubber_at_bottom", "start_playback_1x", "collapse_drawer_to_mini_bar"],
+          "note": "Drawer collapses to a mini-bar showing scenario name + playback controls"
+        },
+        {
+          "from": "scenario_playing",
+          "event": "playback_tick",
+          "to": "scenario_playing",
+          "side_effects": ["advance_scrubber", "emit_replay_frame_to_dashboard"]
+        },
+        {
+          "from": "scenario_playing",
+          "event": "pause_click",
+          "to": "scenario_paused",
+          "side_effects": ["freeze_scrubber", "show_paused_badge"]
+        },
+        {
+          "from": "scenario_paused",
+          "event": "play_click",
+          "to": "scenario_playing",
+          "side_effects": ["resume_scrubber", "remove_paused_badge"]
+        },
+        {
+          "from": "scenario_playing",
+          "event": "scrub_drag",
+          "to": "scenario_playing",
+          "side_effects": ["seek_to_position", "emit_replay_frame_at_position"]
+        },
+        {
+          "from": "scenario_paused",
+          "event": "scrub_drag",
+          "to": "scenario_paused",
+          "side_effects": ["seek_to_position", "emit_replay_frame_at_position"]
+        },
+        {
+          "from": "scenario_playing",
+          "event": "speed_change",
+          "to": "scenario_playing",
+          "side_effects": ["update_playback_rate", "show_speed_badge"],
+          "note": "Speed range: 0.25x to 4x. Auto-cap at 4x with warning per task-4 failure mode."
+        },
+        {
+          "from": "scenario_playing",
+          "event": "playback_complete",
+          "to": "scenario_paused",
+          "side_effects": ["scrubber_at_end", "show_replay_complete_badge", "offer_restart_or_pick_new"]
+        },
+        {
+          "from": "scenario_playing",
+          "event": "scenario_file_corrupt",
+          "to": "error",
+          "side_effects": ["show_unable_to_load_scenario_toast", "expand_drawer_to_full"],
+          "note": "Per task-4 failure mode: show error + list other scenarios"
+        },
+        {
+          "from": ["scenario_playing", "scenario_paused"],
+          "event": "pick_different_scenario",
+          "to": "populated",
+          "side_effects": ["stop_playback", "hide_scrubber", "expand_drawer_to_full"]
+        },
+        {
+          "from": ["populated", "scenario_playing", "scenario_paused"],
+          "event": "mode_switch_away_from_replay",
+          "to": "closed",
+          "side_effects": ["stop_playback", "hide_scrubber", "slide_drawer_up_200ms"]
+        },
+        {
+          "from": "empty",
+          "event": "mode_switch_away_from_replay",
+          "to": "closed",
+          "side_effects": ["slide_drawer_up_200ms"]
+        },
+        {
+          "from": "error",
+          "event": "retry_click",
+          "to": "loading",
+          "side_effects": ["render_scenario_list_skeleton"]
+        },
+        {
+          "from": "error",
+          "event": "mode_switch_away_from_replay",
+          "to": "closed",
+          "side_effects": ["slide_drawer_up_200ms"]
+        }
+      ],
+      "feedback": [
+        "skeleton (3 scenario card placeholders with shimmer)",
+        "drawer_slide (250ms ease-out down from header area)",
+        "scrubber (horizontal bar at viewport bottom with time markers)",
+        "speed_badge (small label: '1x', '2x', '4x' next to play controls)",
+        "mini_bar (collapsed drawer showing scenario name + play/pause/speed/scrubber)"
+      ],
+      "accessibility": [
+        "scenario cards are role=button with aria-label: '{scenario_name}, duration {duration}, {event_count} events'",
+        "scrubber is role=slider with aria-valuemin=0, aria-valuemax={duration}, aria-valuenow={position}",
+        "play/pause button aria-label toggles: 'Play scenario' / 'Pause scenario'",
+        "speed control is role=spinbutton with aria-label: 'Playback speed'",
+        "drawer region has aria-label: 'Replay scenario picker'"
+      ],
+      "notes": "Only visible when Mode=Replay. Dual-use framing per AP-5: scenario playback for demos AND regression testing. Drawer auto-opens on mode switch to Replay, collapses to mini-bar once a scenario is selected."
+    },
+    {
+      "id": "screen-alerts-panel",
+      "name": "Alerts Panel (Always-Visible Side Region)",
+      "states": [
+        "loading",
+        "empty",
+        "populated",
+        "alert_firing",
+        "error"
+      ],
+      "transitions": [
+        {
+          "from": "loading",
+          "event": "alerts_loaded_none",
+          "to": "empty",
+          "side_effects": ["show_no_active_alerts_system_nominal"],
+          "note": "Per C3/task-5: NEVER show blank panel. Show 'No active alerts -- system nominal'."
+        },
+        {
+          "from": "loading",
+          "event": "alerts_loaded_some",
+          "to": "populated",
+          "side_effects": ["render_alert_list_by_severity", "update_active_count_badge"]
+        },
+        {
+          "from": "loading",
+          "event": "alerts_load_error",
+          "to": "error",
+          "side_effects": ["show_alert_system_unavailable"]
+        },
+        {
+          "from": "empty",
+          "event": "alert_fired",
+          "to": "alert_firing",
+          "side_effects": ["prepend_alert_with_entrance_animation", "show_severity_toast_if_critical_6s", "play_subtle_chime_if_critical", "update_active_count_badge", "highlight_zone_on_map"],
+          "note": "In Mock mode, this fires at t=90s from demo start per C3/LC-4. Alert is deterministic and fires exactly once."
+        },
+        {
+          "from": "alert_firing",
+          "event": "firing_animation_complete_1500ms",
+          "to": "populated",
+          "side_effects": ["settle_alert_in_list"]
+        },
+        {
+          "from": "populated",
+          "event": "alert_fired",
+          "to": "alert_firing",
+          "side_effects": ["prepend_alert_with_entrance_animation", "show_severity_toast_if_critical_6s", "update_active_count_badge", "highlight_zone_on_map"]
+        },
+        {
+          "from": "populated",
+          "event": "alert_click",
+          "to": "populated",
+          "side_effects": ["highlight_zone_on_map", "open_zone_detail_panel"],
+          "note": "Clicking an alert opens zone-detail for that alert's zone"
+        },
+        {
+          "from": "populated",
+          "event": "alert_acknowledge",
+          "to": "populated",
+          "side_effects": ["grey_out_alert", "move_to_acknowledged_section", "update_counter_n_active_m_acknowledged"],
+          "note": "Visual-only in MVP per task-5. Alert greys out, moves to bottom."
+        },
+        {
+          "from": "populated",
+          "event": "all_alerts_acknowledged",
+          "to": "empty",
+          "side_effects": ["show_no_active_alerts_system_nominal", "keep_acknowledged_section_visible_collapsed"]
+        },
+        {
+          "from": "empty",
+          "event": "mock_timer_90s",
+          "to": "alert_firing",
+          "side_effects": ["fire_preconfigured_demo_alert", "prepend_alert_with_entrance_animation", "show_severity_toast_critical_6s", "highlight_zone_on_map"],
+          "note": "THE 90-SECOND TIMED ALERT. Fires exactly once per demo session. Severity=critical, zone=highest-density zone at that moment. Per C3: guaranteed wow moment for Dana. Re-armed on demo reset."
+        },
+        {
+          "from": "populated",
+          "event": "mock_timer_90s",
+          "to": "alert_firing",
+          "side_effects": ["fire_preconfigured_demo_alert", "prepend_alert_with_entrance_animation", "show_severity_toast_critical_6s", "highlight_zone_on_map"],
+          "note": "Same 90s timed alert, but panel already has items (e.g., info-level alerts fired earlier)"
+        },
+        {
+          "from": "populated",
+          "event": "alert_source_zone_removed",
+          "to": "populated",
+          "side_effects": ["show_source_no_longer_tracked_on_alert"],
+          "note": "Per task-5 failure mode: broken zone references handled gracefully"
+        },
+        {
+          "from": "error",
+          "event": "alerts_reconnected",
+          "to": "loading",
+          "side_effects": ["reload_alerts"]
+        },
+        {
+          "from": ["empty", "populated", "alert_firing"],
+          "event": "demo_reset",
+          "to": "loading",
+          "side_effects": ["clear_all_alerts", "rearm_90s_timer", "render_alert_skeleton_briefly"]
+        }
+      ],
+      "timed_events": [
+        {
+          "id": "mock_90s_alert",
+          "description": "Pre-seeded critical alert fires exactly 90 seconds after demo session start (or after demo reset). Targets the highest-density zone. Fires once per session. Re-armed on reset.",
+          "trigger_condition": "mode=mock AND elapsed_since_session_start >= 90s AND alert_not_yet_fired_this_session",
+          "alert_payload": {
+            "severity": "critical",
+            "message": "Zone {highest_density_zone} at {pct}% capacity -- threshold exceeded",
+            "rule_summary": "density > 85% for 30s continuous"
+          },
+          "applies_to_modes": ["mock"],
+          "one_shot": true,
+          "rearm_on": "demo_reset"
+        }
+      ],
+      "feedback": [
+        "skeleton (3 alert card placeholders with severity color bars)",
+        "entrance_animation (alert card slides in from top with severity-colored left border)",
+        "toast (critical alerts get a floating toast, auto-dismiss 6s per task-5)",
+        "chime (subtle audio cue for critical alerts, respects prefers-reduced-motion)",
+        "counter_badge (pill badge: '2 active, 3 acknowledged')",
+        "zone_highlight_pulse (corresponding map zone border pulses for 3s on alert fire)"
+      ],
+      "accessibility": [
+        "aria-live=assertive on alerts container for new critical alerts",
+        "aria-live=polite for info/warn severity alerts",
+        "each alert card has role=article with aria-label: '{severity} alert: {message}, fired at {time}'",
+        "acknowledge button has aria-label: 'Acknowledge alert: {message}'",
+        "counter badge is aria-live=polite with text: '{n} active alerts, {m} acknowledged'",
+        "toast auto-dismiss can be paused by focus/hover (WCAG 2.2.1 timing adjustable)"
+      ],
+      "notes": "Always-visible side region, never hidden. Empty state is 'No active alerts -- system nominal', never blank (C3/C4). 90s timed alert is the demo wow moment (Kenji/Dana convergence). Alert-to-zone linking supports drill-down workflow."
+    },
+    {
+      "id": "screen-mode-switcher",
+      "name": "Mode Switcher (Dropdown Popover)",
+      "states": [
+        "closed",
+        "open",
+        "switching"
+      ],
+      "transitions": [
+        {
+          "from": "closed",
+          "event": "mode_chip_click",
+          "to": "open",
+          "side_effects": ["render_dropdown_with_4_modes", "show_availability_indicators", "highlight_current_mode"]
+        },
+        {
+          "from": "open",
+          "event": "mode_selected_same",
+          "to": "closed",
+          "side_effects": ["close_dropdown"]
+        },
+        {
+          "from": "open",
+          "event": "mode_selected_different",
+          "to": "switching",
+          "side_effects": ["close_dropdown", "show_switching_indicator_on_chip", "emit_mode_switch_event_to_dashboard"]
+        },
+        {
+          "from": "open",
+          "event": "click_outside_or_esc",
+          "to": "closed",
+          "side_effects": ["close_dropdown"]
+        },
+        {
+          "from": "switching",
+          "event": "new_mode_data_ready",
+          "to": "closed",
+          "side_effects": ["update_chip_color_and_label", "remove_switching_indicator"],
+          "note": "Chip color: blue=Mock, amber=Replay, green=Live, purple=Mesh per LC-2"
+        },
+        {
+          "from": "switching",
+          "event": "new_mode_unavailable",
+          "to": "closed",
+          "side_effects": ["revert_to_previous_mode", "show_toast_mode_unavailable_with_reason"],
+          "note": "E.g., Live selected but no sensors: 'No sensors found. Falling back to Mock.' Per task-2 failure modes."
+        },
+        {
+          "from": "open",
+          "event": "unavailable_mode_hover",
+          "to": "open",
+          "side_effects": ["show_tooltip_with_reason"],
+          "note": "Greyed mode gets tooltip: 'Gateway not reachable' or 'No sensors detected'"
+        }
+      ],
+      "mode_definitions": [
+        {
+          "id": "mock",
+          "label": "Mock",
+          "sublabel": "Simulated data",
+          "color_token": "blue-500",
+          "availability_check": "always_available",
+          "badge_text": "MOCK -- simulated data"
+        },
+        {
+          "id": "replay",
+          "label": "Replay",
+          "sublabel": "Recorded scenarios",
+          "color_token": "amber-500",
+          "availability_check": "scenarios_exist",
+          "badge_text": "REPLAY -- recorded data"
+        },
+        {
+          "id": "live",
+          "label": "Live",
+          "sublabel": "Real-time sensors",
+          "color_token": "green-500",
+          "availability_check": "sensors_detected_and_ws_open",
+          "badge_text": "LIVE -- real-time data",
+          "degradation_state": "LIVE -- sensors stalled"
+        },
+        {
+          "id": "mesh",
+          "label": "Mesh",
+          "sublabel": "BLE mesh network",
+          "color_token": "purple-500",
+          "availability_check": "mesh_gateway_reachable",
+          "badge_text": "MESH -- BLE network",
+          "degradation_state": "MESH -- gateway degraded"
+        }
+      ],
+      "feedback": [
+        "dropdown (4-item popover with availability dots: green=ready, grey=unavailable)",
+        "chip_color (persistent header badge, color-coded per mode)",
+        "switching_spinner (brief spinner on chip during mode transition)",
+        "tooltip (reason text on hover over unavailable modes)"
+      ],
+      "accessibility": [
+        "mode chip is role=button with aria-haspopup=listbox",
+        "dropdown is role=listbox, each mode is role=option",
+        "aria-selected=true on current mode",
+        "aria-disabled=true on unavailable modes with aria-label including reason",
+        "keyboard: arrow keys navigate modes, Enter selects, Esc closes",
+        "persistent badge has role=status and aria-live=polite so mode changes are announced"
+      ],
+      "notes": "Persistent color-coded badge visible in all views (C2/LC-2). Auto-selects Mock on first load (D1 resolution). Plain-language labels per Maria/Tomasz feedback. Honest provenance labeling per Raj (D4 resolution)."
+    },
+    {
+      "id": "screen-settings",
+      "name": "Settings (Popover)",
+      "states": [
+        "closed",
+        "open",
+        "saving"
+      ],
+      "transitions": [
+        {
+          "from": "closed",
+          "event": "settings_icon_click",
+          "to": "open",
+          "side_effects": ["render_settings_popover", "load_current_settings"]
+        },
+        {
+          "from": "open",
+          "event": "setting_changed",
+          "to": "open",
+          "side_effects": ["apply_setting_immediately_preview", "mark_unsaved"],
+          "note": "Settings apply in real-time preview but are not persisted until save"
+        },
+        {
+          "from": "open",
+          "event": "save_click",
+          "to": "saving",
+          "side_effects": ["persist_to_localstorage", "show_saving_spinner"]
+        },
+        {
+          "from": "saving",
+          "event": "save_complete",
+          "to": "open",
+          "side_effects": ["show_saved_checkmark_1500ms", "clear_unsaved_indicator"]
+        },
+        {
+          "from": "open",
+          "event": "close_click_or_esc",
+          "to": "closed",
+          "side_effects": ["close_popover", "revert_unsaved_changes"]
+        },
+        {
+          "from": "open",
+          "event": "click_outside",
+          "to": "closed",
+          "side_effects": ["close_popover", "revert_unsaved_changes"]
+        }
+      ],
+      "settings_groups": [
+        {
+          "group": "Display",
+          "items": [
+            "heatmap_palette (viridis | plasma | magma | accessible-high-contrast)",
+            "heatmap_opacity (0.3 -- 1.0 slider)",
+            "show_zone_labels (toggle)",
+            "show_legend (toggle, default: on)"
+          ]
+        },
+        {
+          "group": "Alerts",
+          "items": [
+            "alert_sound (toggle, default: on for critical only)",
+            "toast_duration_s (4 -- 10, default: 6)",
+            "density_threshold_pct (50 -- 100, default: 85)"
+          ]
+        },
+        {
+          "group": "Demo",
+          "items": [
+            "mock_data_seed (number input, for deterministic replay)",
+            "timed_alert_delay_s (30 -- 180, default: 90)",
+            "auto_reset_on_mode_switch (toggle, default: off)"
+          ]
+        }
+      ],
+      "feedback": [
+        "popover (anchored to settings icon, 320px wide)",
+        "live_preview (settings changes reflect immediately on dashboard behind popover)",
+        "saved_checkmark (green checkmark icon replaces save button text for 1.5s)",
+        "unsaved_dot (small dot on settings icon when changes are pending)"
+      ],
+      "accessibility": [
+        "popover has role=dialog with aria-label: 'Dashboard settings'",
+        "focus_trap_while_open",
+        "all controls have explicit labels",
+        "sliders have aria-valuemin, aria-valuemax, aria-valuenow, aria-valuetext",
+        "close button is last focusable element; Esc also closes",
+        "settings icon gets aria-expanded=true/false"
+      ],
+      "notes": "Lightweight popover, not a full page. Persists to localStorage. Demo settings group exposes the 90s alert delay as configurable for rehearsal flexibility (Kenji use case). Palette selection addresses AP-4 color accessibility."
+    },
+    {
+      "id": "screen-demo-reset",
+      "name": "Demo Reset (Modal/Toast Confirmation)",
+      "states": [
+        "idle",
+        "confirming_mock_replay",
+        "confirming_live_mesh",
+        "resetting",
+        "complete"
+      ],
+      "transitions": [
+        {
+          "from": "idle",
+          "event": "R_key_or_reset_click",
+          "to": "confirming_mock_replay",
+          "guard": "current_mode in [mock, replay]",
+          "side_effects": ["show_toast_reset_demo_timeline_with_confirm"],
+          "note": "In Mock/Replay, reset is lightweight: toast confirmation only (per AP-1/E1)"
+        },
+        {
+          "from": "idle",
+          "event": "R_key_or_reset_click",
+          "to": "confirming_live_mesh",
+          "guard": "current_mode in [live, mesh]",
+          "side_effects": ["show_modal_live_reset_warning"],
+          "note": "In Live/Mesh, reset is destructive: modal warns about sensor disconnection (per task-7 failure mode)"
+        },
+        {
+          "from": "confirming_mock_replay",
+          "event": "confirm_or_auto_timeout_2s",
+          "to": "resetting",
+          "side_effects": ["emit_demo_reset_event"]
+        },
+        {
+          "from": "confirming_mock_replay",
+          "event": "cancel_click",
+          "to": "idle",
+          "side_effects": ["dismiss_toast"]
+        },
+        {
+          "from": "confirming_live_mesh",
+          "event": "confirm_click",
+          "to": "resetting",
+          "side_effects": ["disconnect_sensors", "emit_demo_reset_event"],
+          "note": "Explicit confirm required for Live/Mesh due to sensor disconnection"
+        },
+        {
+          "from": "confirming_live_mesh",
+          "event": "cancel_click_or_esc",
+          "to": "idle",
+          "side_effects": ["dismiss_modal"]
+        },
+        {
+          "from": "resetting",
+          "event": "reset_complete",
+          "to": "complete",
+          "side_effects": [
+            "dashboard_fade_to_t0_400ms",
+            "clear_all_alerts_and_rearm_90s",
+            "reset_replay_scrubber_if_replay",
+            "reset_demo_session_elapsed_to_0",
+            "show_toast_demo_reset_complete_2s"
+          ]
+        },
+        {
+          "from": "complete",
+          "event": "toast_auto_dismiss_2s",
+          "to": "idle",
+          "side_effects": ["clear_toast"]
+        }
+      ],
+      "feedback": [
+        "toast (Mock/Replay: 'Reset demo timeline? [Undo 2s]' auto-confirms after 2s if not cancelled)",
+        "modal (Live/Mesh: 'Live mode -- reset disconnects current sensors. Continue?' with Cancel/Reset buttons)",
+        "progress_fade (heatmap fades to t=0 state over 400ms during reset)",
+        "complete_toast ('Demo timeline reset' auto-dismiss 2s)"
+      ],
+      "accessibility": [
+        "modal has role=alertdialog with aria-label: 'Confirm demo reset'",
+        "focus moves to Cancel button on modal open (safe default)",
+        "toast has role=status with aria-live=polite",
+        "R key shortcut documented in aria-keyshortcuts on reset button",
+        "Esc dismisses both toast and modal"
+      ],
+      "notes": "Reset never reloads the page (AP-1/E1). In Mock/Replay, it is near-instant with undo window. In Live/Mesh, explicit confirmation required. Resets: heatmap to t=0, clears alerts, re-arms 90s timed alert, resets DemoSession.elapsed_s to 0. Mode badge remains unchanged."
+    }
+  ],
+  "global_transitions": [
+    {
+      "id": "gt-reset-key",
+      "trigger": "R key press",
+      "from_any_state": true,
+      "to": "screen-demo-reset.confirming_mock_replay OR screen-demo-reset.confirming_live_mesh",
+      "guard": "no_modal_open AND no_text_input_focused",
+      "applies_to_modes": ["mock", "replay", "live", "mesh"],
+      "note": "R key is the universal reset shortcut per AP-1. Guarded against firing when typing in inputs."
+    },
+    {
+      "id": "gt-mode-switch",
+      "trigger": "mode_change_event",
+      "from_any_state": true,
+      "effects_on_screens": {
+        "screen-dashboard": "transition to loading with crossfade_300ms",
+        "screen-alerts-panel": "clear active alerts if switching FROM mock, retain if switching between live modes",
+        "screen-replay-picker": "open if target=replay, close if target!=replay",
+        "screen-mode-switcher": "update chip color and label",
+        "screen-zone-detail": "close if open (data context changes)",
+        "screen-topology": "reload sensor list for new mode"
+      },
+      "animation": "crossfade_300ms on all affected panels, no white flash",
+      "note": "Coordinated transition per C4. All panels get skeleton states during switch, never blank."
+    },
+    {
+      "id": "gt-ws-disconnect",
+      "trigger": "websocket_close_unexpected",
+      "from_any_state": true,
+      "effects_on_screens": {
+        "screen-dashboard": "transition to stale (if was populated) or error (if was loading/connecting)",
+        "screen-alerts-panel": "show 'Connection lost -- alerts may be delayed' banner",
+        "screen-topology": "all sensor nodes get amber 'unknown' state"
+      },
+      "auto_retry": {
+        "strategy": "exponential_backoff",
+        "initial_delay_ms": 1000,
+        "max_delay_ms": 30000,
+        "max_attempts": 10
+      },
+      "applies_to_modes": ["live", "mesh"],
+      "note": "Wi-Fi irony resilience per E5/AP-3. Live/Mesh must show degradation explicitly per D5."
+    },
+    {
+      "id": "gt-ws-reconnect",
+      "trigger": "websocket_open_after_disconnect",
+      "from_any_state": true,
+      "effects_on_screens": {
+        "screen-dashboard": "transition from stale/error to loading, then populated on first frame",
+        "screen-alerts-panel": "clear connection-lost banner, reload active alerts",
+        "screen-topology": "refresh sensor health states"
+      },
+      "side_effects": ["show_toast_reconnected_2s", "update_footer_connection_status"],
+      "note": "Recovery path from gt-ws-disconnect."
+    },
+    {
+      "id": "gt-sensor-stream-stalled",
+      "trigger": "no_sensor_frame_for_30s",
+      "from_any_state": true,
+      "applies_to_modes": ["live", "mesh"],
+      "effects_on_screens": {
+        "screen-dashboard": "mode badge gains warning ring + tooltip 'Sensor stream stalled'",
+        "screen-mode-switcher": "chip border pulses amber"
+      },
+      "escalation": {
+        "at_60s": "show toast offering Replay fallback: 'Switch to Replay (last 5min cached) | Retry Live | Dismiss'",
+        "at_120s": "banner replaces toast: 'Sensor data unavailable for 2+ minutes' with same options",
+        "on_accept_fallback": "switch to replay mode with cached buffer, emit gt-mode-switch",
+        "on_dismiss": "persist stale indicator, keep last-known data visible"
+      },
+      "note": "Per task-8-handle-degradation and E5. Explicit degradation state for Live/Mesh, never silent failure (D5 resolution for Tomasz camp)."
+    },
+    {
+      "id": "gt-escape-key",
+      "trigger": "Escape key press",
+      "from_any_state": true,
+      "priority_order": [
+        "close modal (screen-demo-reset confirming states)",
+        "close settings popover (screen-settings open)",
+        "close mode switcher dropdown (screen-mode-switcher open)",
+        "deselect sensor (screen-topology sensor_selected)",
+        "close zone detail panel (screen-zone-detail populated/empty/error)",
+        "close replay picker drawer (screen-replay-picker populated)"
+      ],
+      "note": "Escape closes the topmost open layer. Priority ensures modals close before panels."
+    },
+    {
+      "id": "gt-demo-reset-cascade",
+      "trigger": "demo_reset_complete",
+      "from_any_state": true,
+      "effects_on_screens": {
+        "screen-dashboard": "fade heatmap to t=0, restart mock data stream",
+        "screen-alerts-panel": "clear all alerts, return to empty state, rearm 90s timer",
+        "screen-zone-detail": "close if open",
+        "screen-replay-picker": "reset scrubber to 0 if replay mode",
+        "screen-topology": "reset all sensor nodes to initial mock state"
+      },
+      "note": "Coordinated reset across all screens. No page reload. Per AP-1/task-7."
+    }
+  ],
+  "design_constraints": {
+    "animation_budget": {
+      "crossfade": "300ms ease-in-out",
+      "slide_in": "250ms ease-out",
+      "slide_out": "200ms ease-in",
+      "fade_to_t0": "400ms ease-in-out",
+      "skeleton_minimum_display": "200ms (prevent flash of skeleton)"
+    },
+    "timing_requirements": {
+      "first_meaningful_paint": "< 2000ms from page load",
+      "skeleton_render": "< 200ms from mount",
+      "ws_connection_timeout": "5000ms before error state",
+      "stale_threshold": "30s no frames",
+      "fallback_offer_threshold": "60s no frames",
+      "mock_timed_alert": "90s from session start"
+    },
+    "state_invariants": [
+      "No screen may ever render as blank white space (LC-3/C4)",
+      "Mode badge must be visible in every screen state (LC-2/C2)",
+      "Heatmap legend with units must be visible whenever heatmap is populated (LC-1/C1)",
+      "Headline metrics bar must be visible whenever heatmap is populated (LC-1/C5)",
+      "Alert panel empty state must show 'No active alerts -- system nominal', never blank (C3)",
+      "Toast auto-dismiss must be pausable on hover/focus (WCAG 2.2.1)"
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "request_terms": ["heatmap", "dashboard", "real-time crowd", "map overlay", "sensor topology", "mode switching", "alerts panel"],
+  "candidates": [
+    {
+      "name": "interactive-visualization-creator",
+      "path": "~/.agents/skills-db/design-ux/interactive-visualization-creator/SKILL.md",
+      "why": "Covers interactive data visualizations in React (SVG, Canvas, animations) with progressive disclosure and device-aware rendering tiers"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "path": "~/.agents/skills-db/design-ux/ui-ux-pro-max/SKILL.md",
+      "why": "Comprehensive design reference with 25 chart types, 99 UX guidelines, accessibility rules, and dashboard-specific layout patterns"
+    },
+    {
+      "name": "design-doc-mermaid",
+      "path": "~/.agents/skills-db/design-ux/design-doc-mermaid/SKILL.md",
+      "why": "Architecture and deployment diagrams for documenting WebSocket topology, mode state machines, and sensor mesh flows"
+    },
+    {
+      "name": "ui-polish",
+      "path": "~/.agents/skills-db/design-ux/ui-polish/SKILL.md",
+      "why": "Iterative polish passes for desktop/mobile separately -- useful for dashboard density tuning but not core build"
+    },
+    {
+      "name": "ux-audit",
+      "path": "~/.agents/skills-db/design-ux/ux-audit/SKILL.md",
+      "why": "Nielsen heuristic evaluation and accessibility audit -- relevant post-build, not during initial construction"
+    },
+    {
+      "name": "web-design-guidelines",
+      "path": "~/.agents/skills-db/design-ux/web-design-guidelines/SKILL.md",
+      "why": "Vercel Web Interface Guidelines compliance checks -- general web quality but not map/heatmap specific"
+    },
+    {
+      "name": "superdesign-prompt-library",
+      "path": "~/.agents/skills-db/design-ux/superdesign-prompt-library/SKILL.md",
+      "why": "355 reusable UI prompt building blocks for layout and style -- useful for panel composition but low specificity to real-time maps"
+    },
+    {
+      "name": "information-architecture-frameworks",
+      "path": "~/.agents/skills-db/thinking/11-ui-ux/contexts/patterns/information-architecture-frameworks/SKILL.md",
+      "why": "LATCH framework and navigation systems for structuring multi-mode dashboard IA (Mock/Replay/Live/Mesh tabs)"
+    }
+  ],
+  "selected": [
+    {
+      "name": "interactive-visualization-creator",
+      "path": "~/.agents/skills-db/design-ux/interactive-visualization-creator/SKILL.md",
+      "why": "Direct hit: React interactive data visualization with Canvas/SVG, device-aware performance tiers, and progressive disclosure -- maps to heatmap overlay, real-time sensor rendering, and crowd density visualization"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "path": "~/.agents/skills-db/design-ux/ui-ux-pro-max/SKILL.md",
+      "why": "Comprehensive dashboard design patterns with chart types, color palettes for data density, accessibility for alerts panels, and responsive layout rules for multi-panel real-time views"
+    },
+    {
+      "name": "design-doc-mermaid",
+      "path": "~/.agents/skills-db/design-ux/design-doc-mermaid/SKILL.md",
+      "why": "Architecture diagrams for WebSocket data flow, mode state machine (Mock/Replay/Live/Mesh), and sensor mesh topology -- essential for documenting the system before building it"
+    }
+  ]
+}

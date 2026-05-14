@@ -1,0 +1,43 @@
+{
+  "request_terms": [
+    "hackathon",
+    "deadzone",
+    "venue intelligence",
+    "heatmap",
+    "replay",
+    "websocket",
+    "frontend handoff",
+    "api contract"
+  ],
+  "candidates": [
+    {
+      "skill": "ux",
+      "path": "/Users/jean-patricksmith/.agents/skills/ux/SKILL.md",
+      "reason": "Primary requested hub for wireframes, IA, task graph, and handoff artifacts."
+    },
+    {
+      "skill": "interactive-visualization-creator",
+      "path": "/Users/jean-patricksmith/.agents/skills-db/design-ux/interactive-visualization-creator/SKILL.md",
+      "reason": "Relevant to live heatmap, vector overlays, replay controls, and device-aware visualization quality."
+    },
+    {
+      "skill": "ux-audit",
+      "path": "/Users/jean-patricksmith/.agents/skills-db/design-ux/ux-audit/SKILL.md",
+      "reason": "Provides usability and accessibility checks for a judge-facing dashboard."
+    },
+    {
+      "skill": "ui-polish",
+      "path": "/Users/jean-patricksmith/.agents/skills-db/design-ux/ui-polish/SKILL.md",
+      "reason": "Useful after the first UI pass; not used as a primary source because the app is not implemented yet."
+    }
+  ],
+  "selected": [
+    "ux",
+    "interactive-visualization-creator",
+    "ux-audit"
+  ],
+  "notes": [
+    "Repo-local docs/_inbox/lev-ref/SKILL.md was not present; progressive disclosure conventions were applied from the ux skill body.",
+    "No Pencil file was created because the immediate need is an implementation handoff, not a design-file artifact."
+  ]
+}

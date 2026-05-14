@@ -1,0 +1,232 @@
+study:
+  id: deadzone-mvp-synthetic-user-research
+  pipeline_step: 1b
+  date: "2026-05-14"
+  method: synthetic_persona_simulation
+  problem_statement: >
+    Hackathon judges need to evaluate a crowd-intelligence platform in under
+    5 minutes without setup pain or hardware dependencies. They need to see
+    live venue intelligence (density heatmaps, movement, congestion, dead zones)
+    in a way that's deterministic for fair judging but extensible to real
+    BLE/Wi-Fi/Meshtastic sensing.
+
+concept_under_test:
+  components:
+    - heatmap_dashboard
+    - mode_switcher  # Mock / Replay / Live / Mesh
+    - sensor_topology_view
+    - alerts_panel
+  stack: "FastAPI + React + Leaflet + Heatmap.js"
+  entry_point: "docker compose up -> http://localhost:3000"
+
+personas:
+  - id: dana
+    label: "Hackathon Judge (Generalist)"
+    technical_literacy: medium
+    time_pressure: 5min
+    risk_tolerance: demo-friendly
+    domain_expertise: none
+    archetype: spectator
+
+  - id: raj
+    label: "Skeptical Engineer Judge"
+    technical_literacy: high
+    time_pressure: 5min
+    risk_tolerance: low
+    domain_expertise: adjacent  # IoT, distributed systems
+    archetype: investigator
+
+  - id: maria
+    label: "Venue Operations Manager"
+    technical_literacy: low-medium
+    time_pressure: 30min
+    risk_tolerance: medium
+    domain_expertise: deep  # venue ops, crowd management
+    archetype: operator
+
+  - id: tomasz
+    label: "Public Safety Coordinator"
+    technical_literacy: medium
+    time_pressure: 30min
+    risk_tolerance: extremely-low  # life-safety
+    domain_expertise: deep  # emergency management
+    archetype: operator
+
+  - id: kenji
+    label: "Hackathon Developer (Team Member)"
+    technical_literacy: high
+    time_pressure: 1min  # mode-switch during live demo
+    risk_tolerance: high-for-demo
+    domain_expertise: medium
+    archetype: investigator
+
+user_types:
+  - id: spectator
+    label: "Spectator (Glanceable)"
+    personas: [dana]
+    key_needs:
+      - instant_comprehension
+      - headline_metrics
+      - minimal_controls
+      - wow_moment
+
+  - id: investigator
+    label: "Investigator (Drill-Down)"
+    personas: [raj, kenji]
+    key_needs:
+      - mode_switching
+      - raw_data_access
+      - sensor_detail
+      - api_visibility
+
+  - id: operator
+    label: "Operator (Action-Oriented)"
+    personas: [maria, tomasz]
+    key_needs:
+      - zone_level_numbers
+      - trend_direction
+      - alert_routing
+      - degradation_visibility
+
+convergence:
+  - id: C1
+    finding: "Heatmap needs legend and units"
+    personas: [dana, raj, maria, tomasz, kenji]
+    ux_implication: layout_constraint
+
+  - id: C2
+    finding: "Mode labeling must be honest and persistent"
+    personas: [dana, raj, maria, tomasz, kenji]
+    ux_implication: layout_constraint
+
+  - id: C3
+    finding: "At least one alert must fire during 5-min demo"
+    personas: [dana, raj, maria, kenji]
+    ux_implication: layout_constraint
+
+  - id: C4
+    finding: "Empty/loading states perceived as broken"
+    personas: [dana, raj, maria, tomasz, kenji]
+    ux_implication: layout_constraint
+
+  - id: C5
+    finding: "Headline metrics beat gradients for comprehension speed"
+    personas: [dana, maria, tomasz, kenji]
+    ux_implication: layout_constraint
+
+divergence:
+  - id: D1
+    tension: "Mode switcher visibility"
+    camp_a: {position: "hide modes, auto-select", personas: [dana, maria]}
+    camp_b: {position: "show modes prominently", personas: [raj, tomasz]}
+    resolution: "Auto-select on load; expose switcher as secondary control"
+
+  - id: D2
+    tension: "Sensor topology prominence"
+    camp_a: {position: "skip it, it's noise", personas: [dana]}
+    camp_b: {position: "it proves real engineering", personas: [raj, tomasz]}
+    resolution: "Collapsible panel or tab, not front-and-center"
+
+  - id: D3
+    tension: "Alert detail level"
+    camp_a: {position: "one dramatic alert suffices", personas: [dana, kenji]}
+    camp_b: {position: "need severity, ack, escalation", personas: [maria, tomasz]}
+    resolution: "MVP: simple alerts with severity badge; detail/ack post-MVP"
+
+  - id: D4
+    tension: "Data provenance labeling intensity"
+    camp_a: {position: "don't care, make it look good", personas: [dana]}
+    camp_b: {position: "mislabeled mock is disqualifying", personas: [raj, tomasz]}
+    resolution: "Always show provenance via subtle badge, not banner"
+
+  - id: D5
+    tension: "Graceful degradation vs explicit failure"
+    camp_a: {position: "seamless fallback for demo", personas: [kenji]}
+    camp_b: {position: "explicit failure indication, never hide problems", personas: [tomasz]}
+    resolution: "Mock/Replay: silent fallback; Live/Mesh: explicit indicator with fallback option"
+
+edge_cases:
+  - id: E1
+    finding: "Demo reset without page reload"
+    persona: kenji
+    risk: "Judge arrives mid-demo, post-alert state, no clean restart"
+
+  - id: E2
+    finding: "Heatmap as panic vector on public screens"
+    persona: tomasz
+    risk: "Real-time density displayed publicly could cause crowd panic"
+
+  - id: E3
+    finding: "Color accessibility for heatmap palette"
+    persona: maria
+    risk: "Red-green colorblind users cannot read default heatmap"
+
+  - id: E4
+    finding: "Replay mode as regression testing tool"
+    persona: raj
+    risk: "Positive risk -- missed dual-use value in pitch"
+
+  - id: E5
+    finding: "Wi-Fi-dependent Wi-Fi dead zone detector irony"
+    persona: raj
+    risk: "Perceived as fatal flaw unless Mesh/BLE modes are foregrounded"
+
+anti_patterns:
+  - id: AP-1
+    pattern: "No demo reset button"
+    source: E1
+    mitigation: "Keyboard shortcut or hidden button resets mock timeline without reload"
+
+  - id: AP-2
+    pattern: "Public density display without auth"
+    source: E2
+    mitigation: "Note in pitch; auth layer in V2; never default to public in prod"
+
+  - id: AP-3
+    pattern: "Wi-Fi-dependent dead zone detector"
+    source: E5
+    mitigation: "Pitch addresses directly; demo shows Live-to-Mesh degradation"
+
+  - id: AP-4
+    pattern: "Color-only encoding at critical thresholds"
+    source: E3
+    mitigation: "Accessible palette (viridis) plus pattern overlay"
+
+  - id: AP-5
+    pattern: "Replay framed only as demo tool"
+    source: E4
+    mitigation: "Frame as scenario playback with import/export; mention testing use case"
+
+layout_constraints:
+  - id: LC-1
+    source: [C1, C5]
+    constraint: "Persistent heatmap legend with units + summary metric bar (occupancy, peak zone, trend arrow)"
+    priority: P0
+
+  - id: LC-2
+    source: [C2]
+    constraint: "Persistent mode badge in all views with color coding and plain-language label"
+    priority: P0
+
+  - id: LC-3
+    source: [C4]
+    constraint: "Three-state panels: loading skeleton, meaningful zero-state, populated"
+    priority: P0
+
+  - id: LC-4
+    source: [C3]
+    constraint: "Demo mode triggers timed alert within 90 seconds of load"
+    priority: P0
+
+  - id: LC-5
+    source: [E3]
+    constraint: "WCAG AA accessible heatmap palette; no red-green only encoding"
+    priority: P1
+
+gate_decision: proceed
+gate_rationale: >
+  Strong convergence on core UX requirements with manageable divergences
+  mapping to three clean user types. No fundamental misalignment detected.
+  Edge cases are addressable within MVP scope or explicitly deferred.
+  Primary design challenge (progressive disclosure across user types)
+  follows well-understood UX patterns.

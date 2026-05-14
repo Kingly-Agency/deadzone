@@ -1,0 +1,174 @@
+topology: "cascade"
+runtime_profile: "codex-backend-intelligence"
+validation_chain:
+  - frame_complete_gate
+  - plan_alignment_gate
+  - convergence_gate
+  - slice_verticality_gate
+  - slice_alignment_gate
+  - feedback_loop_gate
+  - cold_start_context_gate
+  - adversarial_constraint_gate
+  - execution_ready_gate
+receipt_policy: "append_only"
+checkpoint_policy: "forward_only"
+budget:
+  max_iterations: 3
+  timeout: "5h"
+exit_conditions:
+  - "Aggregate snapshots and alert/topology tests pass from deterministic mock frames."
+  - "No frontend-facing object requires raw packet interpretation."
+slices:
+  - id: "intel-01-aggregate-snapshot"
+    title: "Compose FE-ready aggregate snapshots"
+    focus: "A complete dashboard snapshot built from source frames with zone metrics, flow, sensor health, mesh links, and headline metrics."
+    type: "AFK"
+    blocked_by:
+      - "deadzone-be-contract-spine:contract-01-runtime-contract"
+    behavior_coverage:
+      - "A2"
+      - "task-1-land"
+      - "task-3-inspect-zone"
+    acceptance:
+      - "Aggregator produces four ZoneAggregate objects with density, pressure_score, trend, confidence, current_count, capacity, and updated_at."
+      - "SnapshotMetrics includes estimated_devices, hot_zones, active_alerts, and offline_sensors."
+      - "FlowVector objects include source zone, target zone, direction, magnitude, and confidence."
+    what_to_build: "Implement venue geometry, aggregation, trend calculation, confidence scoring, and snapshot composition modules for frontend-ready dashboard objects."
+    why_this_slice: "The FE needs a single snapshot object for first paint and reconnect recovery before incremental stream events matter."
+    acceptance_criteria:
+      - "Snapshot fixture can render MetricsBar, HeatmapLayer, ZoneOverlay, FlowVectorLayer, AlertRail, and SensorNodeOverlay without null payload branches."
+      - "Zone detail can be derived from the same aggregate state used by snapshot."
+      - "Trend uses a five-minute rolling window when enough data exists and sparse state when it does not."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#backend_capabilities.intelligence"
+        - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml#components.schemas.IntelligenceSnapshot"
+      known_reds:
+        - "No real venue map is required; use a stable coordinate-plane venue for MVP."
+      forbidden_moves:
+        - "Do not make FE infer density from raw events."
+        - "Do not omit confidence or freshness because mock data is deterministic."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_aggregate_snapshot.py"
+      inputs:
+        - "deterministic source frames"
+        - "venue fixture"
+      outputs:
+        - "Passing aggregate snapshot tests"
+      pass_fail: "Pass when the aggregate snapshot has every FE-required object and stable deterministic values."
+    stages:
+      - id: "stage-venue"
+        action: "Create static venue zones and coordinate helpers."
+        verify: "pytest backend/tests/test_aggregate_snapshot.py -k venue"
+      - id: "stage-aggregate"
+        action: "Compute density, pressure, confidence, current_count, capacity, and trend."
+        verify: "pytest backend/tests/test_aggregate_snapshot.py -k aggregate"
+      - id: "stage-snapshot"
+        action: "Compose IntelligenceSnapshot with metrics, flow, sensors, mesh links, and alerts."
+        verify: "pytest backend/tests/test_aggregate_snapshot.py -k snapshot"
+    design_refs:
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract.required_snapshot_objects"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#MetricsBar"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#HeatmapLayer"
+    write_scope:
+      - "deadzone/backend/app/spatial/**"
+      - "deadzone/backend/app/domain/**"
+      - "deadzone/backend/tests/test_aggregate_snapshot.py"
+    constraints:
+      - "Coordinate system must be stable across mock and replay."
+      - "Snapshot must be serializable through the contract-spine models."
+    failure_modes:
+      - "First dashboard paint needs multiple extra REST calls."
+      - "Zone detail disagrees with headline metrics."
+      - "Sparse trends are shown as false precision."
+    verify: "cd deadzone && pytest backend/tests/test_aggregate_snapshot.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "deadzone-backend-prd.yaml acceptance A2"
+      - "components.md MetricsBar and ZoneDetailCard data props"
+
+  - id: "intel-02-alerts-topology"
+    title: "Emit alerts, topology, and diagnostics"
+    focus: "Alert and sensor topology behavior that proves the backend is intelligent, inspectable, and privacy-safe."
+    type: "AFK"
+    blocked_by:
+      - "intel-01-aggregate-snapshot"
+    behavior_coverage:
+      - "A7"
+      - "A8"
+      - "task-5-acknowledge-alert"
+      - "task-6-inspect-topology"
+    acceptance:
+      - "Rules emit congestion, queue_buildup, hallway_stall, and sensor_offline alerts."
+      - "Critical alert events produce alert_upsert StreamEnvelope messages with supporting zone and sensor context."
+      - "Sensor topology includes online, degraded, offline, adapter_disabled statuses and mesh link quality."
+      - "Raw event tail contains privacy-safe summaries only."
+    what_to_build: "Implement alert heuristics, sensor health rollups, mesh link summaries, coverage gap detection, and diagnostics buffers consumed by dashboard panels."
+    why_this_slice: "The demo credibility comes from alert response and sensor drill-down, not just animated density."
+    acceptance_criteria:
+      - "Alert source zone removed returns a readable source-no-longer-tracked state."
+      - "Coverage gaps are represented as data objects so FE can hatch them without ambiguous color absence."
+      - "Sensor offline state remains visible instead of removing the node."
+    operator_context:
+      exact_inputs:
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json task-5 and task-6"
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md SensorNode, CoverageGapHatch, AlertListItem, RawEventTail"
+      known_reds:
+        - "Alert acknowledge is visual/local in MVP unless a separate persistence task is introduced."
+      forbidden_moves:
+        - "Do not make acknowledged alert persistence a blocker for MVP."
+        - "Do not leak adapter-level raw identifiers through diagnostics."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_alert_rules.py backend/tests/test_topology_diagnostics.py backend/tests/test_privacy_rules.py"
+      inputs:
+        - "aggregate frames"
+        - "sensor health fixtures"
+        - "privacy test observations"
+      outputs:
+        - "Passing alert, topology, and privacy tests"
+      pass_fail: "Pass when all alert kinds, topology statuses, and privacy constraints are verified."
+    stages:
+      - id: "stage-alert-rules"
+        action: "Implement congestion, queue, stall, and sensor offline alert rules."
+        verify: "pytest backend/tests/test_alert_rules.py"
+      - id: "stage-topology"
+        action: "Compute sensor health, coverage gaps, mesh links, and diagnostics buffers."
+        verify: "pytest backend/tests/test_topology_diagnostics.py"
+      - id: "stage-privacy"
+        action: "Assert diagnostics omit raw MAC or stable identity fields."
+        verify: "pytest backend/tests/test_privacy_rules.py"
+    design_refs:
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#backend_capabilities.alerts"
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#acceptance.A7"
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#acceptance.A8"
+    write_scope:
+      - "deadzone/backend/app/spatial/alerts.py"
+      - "deadzone/backend/app/spatial/flow.py"
+      - "deadzone/backend/app/spatial/topology.py"
+      - "deadzone/backend/tests/test_alert_rules.py"
+      - "deadzone/backend/tests/test_topology_diagnostics.py"
+      - "deadzone/backend/tests/test_privacy_rules.py"
+    constraints:
+      - "Alert severity must use info, warning, critical."
+      - "Sensor status must use online, degraded, offline, adapter_disabled."
+    failure_modes:
+      - "Alert rail looks inert during demo."
+      - "Topology hides missing data instead of explaining coverage gaps."
+      - "Diagnostics undermine the privacy claim."
+    verify: "cd deadzone && pytest backend/tests/test_alert_rules.py backend/tests/test_topology_diagnostics.py backend/tests/test_privacy_rules.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "user_and_agent_research.md C3/C4/D2/D3/E2"
+      - "deadzone-backend-prd.yaml acceptance A7-A8"

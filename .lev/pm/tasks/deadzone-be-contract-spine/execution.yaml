@@ -1,0 +1,179 @@
+topology: "cascade"
+runtime_profile: "codex-backend-contract"
+validation_chain:
+  - frame_complete_gate
+  - plan_alignment_gate
+  - convergence_gate
+  - slice_verticality_gate
+  - slice_alignment_gate
+  - feedback_loop_gate
+  - cold_start_context_gate
+  - adversarial_constraint_gate
+  - execution_ready_gate
+receipt_policy: "append_only"
+checkpoint_policy: "forward_only"
+budget:
+  max_iterations: 3
+  timeout: "4h"
+exit_conditions:
+  - "Contract tests pass and sample FE fixtures validate against OpenAPI and StreamEnvelope schema."
+  - "Frontend can bootstrap from /api/v1/config and /api/v1/snapshot before opening /ws/live."
+slices:
+  - id: "contract-01-runtime-contract"
+    title: "Serve the dashboard contract spine"
+    focus: "One boot path from health/config/snapshot to WebSocket stream with stable aggregate payloads."
+    type: "AFK"
+    blocked_by: []
+    behavior_coverage:
+      - "A1"
+      - "A2"
+      - "A3"
+      - "task-1-land"
+    acceptance:
+      - "GET /health returns ok=true, service=deadzone-api, version, and active mode."
+      - "GET /api/v1/config returns active_mode, available_modes, disabled_modes, venue, features, and websocket_url."
+      - "GET /api/v1/snapshot returns the full IntelligenceSnapshot object from the consolidated PRD."
+      - "WS /ws/live sends a snapshot envelope and preserves monotonically increasing sequence numbers."
+    what_to_build: "Implement or update FastAPI runtime, Pydantic contract models, REST routes, and WebSocket connection manager so the frontend can render from snapshot and stream without mode-specific payload branches."
+    why_this_slice: "The frontend build depends on a stable contract before heatmap, alerts, replay controls, or topology can be wired safely."
+    acceptance_criteria:
+      - "OpenAPI schema exposes HealthResponse, AppConfig, StreamEnvelope, IntelligenceSnapshot, StreamState, Venue, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, SnapshotMetrics, ReplayScenario, and ErrorResponse."
+      - "Snapshot payload contains one StreamState, one Venue, four zones, four sensors, two flow vectors, two alerts, one mesh link, and SnapshotMetrics in fixtures."
+      - "StreamEnvelope payloads use allowed message types only: snapshot, zone_update, alert_upsert, sensor_status, flow_update, replay_state, error."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+        - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml"
+        - "deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json"
+        - "Run from deadzone/ when implementing."
+      known_reds:
+        - "Existing backend files may not exist yet; create them under backend/ using the path conventions from deadzone-agent-task-bundle.yaml."
+      forbidden_moves:
+        - "Do not add required live RF dependencies to base startup."
+        - "Do not expose raw device identity fields."
+        - "Do not rename existing contract objects unless the PRD spec is updated in the same patch."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_contract_shapes.py backend/tests/test_websocket_stream.py"
+      inputs:
+        - "OpenAPI/Pydantic models"
+        - "sample StreamEnvelope fixtures"
+      outputs:
+        - "Passing contract and WebSocket tests"
+      pass_fail: "Pass when all required schemas, message types, and sequence rules are asserted by tests."
+    stages:
+      - id: "stage-contract-models"
+        action: "Create or update backend domain/envelope Pydantic models from PRD and OpenAPI."
+        verify: "pytest backend/tests/test_contract_shapes.py"
+      - id: "stage-rest-ws"
+        action: "Serve health, config, snapshot, and /ws/live using the models."
+        verify: "pytest backend/tests/test_websocket_stream.py"
+      - id: "stage-fixtures"
+        action: "Generate frontend fixture payloads from the same model factories."
+        verify: "pytest backend/tests/test_contract_shapes.py -k fixture"
+    design_refs:
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract"
+      - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml#x-websocket"
+    write_scope:
+      - "deadzone/backend/app/**"
+      - "deadzone/backend/tests/test_contract_shapes.py"
+      - "deadzone/backend/tests/test_websocket_stream.py"
+      - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml"
+    constraints:
+      - "Keep REST snapshot and WebSocket payload shapes identical for shared objects."
+      - "Keep StreamEnvelope additionalProperties=false for the envelope shell."
+    failure_modes:
+      - "Frontend fixture drift from backend models."
+      - "Stream sequence regression causing stale FE updates."
+      - "Backend startup fails when optional live dependencies are absent."
+    verify: "cd deadzone && pytest backend/tests/test_contract_shapes.py backend/tests/test_websocket_stream.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "deadzone-frontend-partner-brief.yaml contract_order"
+      - "deadzone-backend-prd.yaml acceptance A1-A3"
+
+  - id: "contract-02-control-surfaces"
+    title: "Add mode, reset, detail, and raw-tail surfaces"
+    focus: "FE interactions that the current contract does not fully expose: mode switch, reset, zone detail, and sensor raw event tail."
+    type: "AFK"
+    blocked_by:
+      - "contract-01-runtime-contract"
+    behavior_coverage:
+      - "task-2-switch-mode"
+      - "task-3-inspect-zone"
+      - "task-6-inspect-topology"
+      - "task-7-reset-demo"
+    acceptance:
+      - "POST /api/v1/mode returns StreamState on valid mode and 409 ErrorResponse with disabled reason on unavailable mode."
+      - "POST /api/v1/demo/reset returns a fresh IntelligenceSnapshot with reset clock, cleared alerts, and re-armed mock alert."
+      - "GET /api/v1/zones/{zone_id} returns zone aggregate, trend_5m, current alerts, last_seen, and flow direction."
+      - "GET /api/v1/sensors/{sensor_id}/events returns exactly 10 newest privacy-safe event summaries when available."
+    what_to_build: "Patch the API contract and backend routes for control and detail endpoints required by the richer UX run, including tests and fixture examples."
+    why_this_slice: "The dashboard can paint from snapshot, but the frontend cannot complete mode switching, reset, zone drill-down, or sensor diagnostics without these backend surfaces."
+    acceptance_criteria:
+      - "Mode switch keeps the previous mode and returns a recoverable error when the selected adapter is disabled."
+      - "Reset never requires page reload and preserves mode badge semantics."
+      - "Raw event tail omits stable identifiers and includes timestamp, sensor_id, RSSI bucket or value, device_type, and zone_id."
+    operator_context:
+      exact_inputs:
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md"
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract.required_additions_to_existing_contract"
+      known_reds:
+        - "If the backend app is not scaffolded, implement this after contract-01."
+      forbidden_moves:
+        - "Do not make reset destructive for Mock or Replay."
+        - "Do not persist raw event tails beyond the short diagnostics buffer."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_contract_shapes.py backend/tests/test_mode_control.py backend/tests/test_demo_reset.py backend/tests/test_sensor_event_tail.py"
+      inputs:
+        - "Mode control requests"
+        - "Demo reset request"
+        - "Zone and sensor fixture ids"
+      outputs:
+        - "Passing endpoint tests and updated OpenAPI schema"
+      pass_fail: "Pass when endpoints implement the exact success and disabled/error states in the PRD."
+    stages:
+      - id: "stage-openapi-additions"
+        action: "Add schemas and paths for mode control, demo reset, zone detail, and sensor event tail."
+        verify: "pytest backend/tests/test_contract_shapes.py -k openapi"
+      - id: "stage-route-implementation"
+        action: "Implement routes against runtime state and diagnostics buffers."
+        verify: "pytest backend/tests/test_mode_control.py backend/tests/test_demo_reset.py"
+      - id: "stage-privacy-tail"
+        action: "Constrain raw event tail to privacy-safe summaries."
+        verify: "pytest backend/tests/test_sensor_event_tail.py"
+    design_refs:
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-2-switch-mode"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-6-inspect-topology"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-7-reset-demo"
+    write_scope:
+      - "deadzone/backend/app/api/**"
+      - "deadzone/backend/app/domain/**"
+      - "deadzone/backend/tests/test_mode_control.py"
+      - "deadzone/backend/tests/test_demo_reset.py"
+      - "deadzone/backend/tests/test_sensor_event_tail.py"
+      - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml"
+    constraints:
+      - "All new endpoints must be local-first and hardware-free in default mock mode."
+      - "All errors must use ErrorResponse with recoverable boolean."
+    failure_modes:
+      - "FE has to emulate backend reset state locally."
+      - "Disabled live mode looks like a crash instead of a recoverable unavailable mode."
+      - "Raw event tail leaks stable identifiers."
+    verify: "cd deadzone && pytest backend/tests/test_mode_control.py backend/tests/test_demo_reset.py backend/tests/test_sensor_event_tail.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "deadzone-backend-prd.yaml source_resolution.required API additions"
+      - "interaction_fsm.json mode/reset/topology screens"

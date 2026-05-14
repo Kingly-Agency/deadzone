@@ -1,0 +1,144 @@
+meta:
+  source: ".lev/ux/20260514-101228-deadzone-mvp-prd"
+  confidence: synthetic
+  pipeline_version: "ux-v1"
+
+problem: |
+  DeadZone must prove real-time venue intelligence locally and deterministically. The first build should show mock/replay crowd density, movement, alerts, and sensor status without depending on live RF hardware.
+
+primary_jobs:
+  - id: job-1
+    statement: "When I open the demo as a judge, I want to immediately see crowd pressure changing, so I can understand the product without setup or explanation."
+    priority: 1
+  - id: job-2
+    statement: "When congestion starts forming, I want a clear alert with location, severity, and trend, so I can decide where attention is needed."
+    priority: 2
+  - id: job-3
+    statement: "When data changes source from mock to replay or live, I want that provenance visible, so I can trust what the display means."
+    priority: 3
+  - id: job-4
+    statement: "When I implement the UI, I want stable aggregate payloads and explicit states, so I can build the dashboard without reverse-engineering backend behavior."
+    priority: 4
+
+entities:
+  - name: Venue
+    attributes: ["id", "name", "bounds", "zones", "map_version"]
+    primary_action: "view"
+  - name: Zone
+    attributes: ["id", "name", "polygon", "density", "pressure_score", "trend", "confidence"]
+    primary_action: "inspect"
+  - name: SensorNode
+    attributes: ["id", "label", "kind", "zone_id", "status", "battery", "latency_ms", "last_seen"]
+    primary_action: "inspect"
+  - name: Alert
+    attributes: ["id", "kind", "zone_id", "severity", "message", "started_at", "duration_s", "status"]
+    primary_action: "select"
+  - name: ReplayScenario
+    attributes: ["id", "name", "description", "duration_s", "seed", "available_speeds"]
+    primary_action: "play"
+  - name: StreamState
+    attributes: ["mode", "connected", "sequence", "clock", "freshness", "source_label"]
+    primary_action: "monitor"
+
+relationships:
+  - from: Venue
+    to: Zone
+    cardinality: "1:N"
+    ownership: contains
+  - from: Zone
+    to: SensorNode
+    cardinality: "1:N"
+    ownership: references
+  - from: Zone
+    to: Alert
+    cardinality: "1:N"
+    ownership: references
+  - from: ReplayScenario
+    to: StreamState
+    cardinality: "1:1"
+    ownership: references
+
+modes:
+  auto:
+    description: "Default demo path; app starts in deterministic mock or replay."
+    gates: ["self_invalidation"]
+    output: "constraint_bundle.yaml"
+  interactive:
+    description: "Future operator setup path for adapter selection and diagnostics."
+    gates: ["adapter_availability", "scenario_selection"]
+    output: "all artifacts + constraint_bundle.yaml"
+  spike:
+    description: "Use only when sketching new dashboard panels."
+    gates: []
+    output: "wireframes.md"
+
+navigation:
+  primary: ["Operations Dashboard", "Replay Lab", "Sensor Mesh"]
+  secondary: ["Scenario Picker", "Diagnostics Drawer", "API Contract Reference"]
+
+layout_constraints:
+  - "first_screen_is_dashboard: true"
+  - "show_mode_and_freshness_always: true"
+  - "map_primary_alerts_secondary: true"
+  - "raw_events_hidden_by_default: true"
+  - "mobile_alerts_use_bottom_sheet: true"
+  - "reduced_motion_supported: true"
+
+anti_patterns:
+  - "Do not build a landing page; judges need the operating dashboard immediately."
+  - "Do not stream only raw RSSI packets to the UI; the UI needs aggregate zone, alert, sensor, and flow objects."
+  - "Do not hide stale/offline state; preserve last snapshot and mark freshness clearly."
+  - "Do not use identity-tracking language; frame everything as aggregate density, pressure, and movement."
+  - "Do not make mesh topology the main screen for MVP; it is a support story after the heatmap proves value."
+
+design_tokens:
+  palette: "dark neutral operations surface, cyan active stream, amber warning, red critical, green healthy, gray offline"
+  fonts: ["system sans", "tabular numeric for metrics and clocks"]
+
+user_types:
+  - id: "judge-five-minute-evaluator"
+    needs: "Instant visual proof, deterministic controls, credible upgrade path."
+    default_mode: auto
+  - id: "venue-ops-commander"
+    needs: "Actionable alerts, readable pressure trends, privacy-safe aggregate language."
+    default_mode: interactive
+  - id: "frontend-partner"
+    needs: "Stable payloads, explicit states, component boundaries, acceptance checks."
+    default_mode: auto
+
+research_signal:
+  convergence:
+    - "Dashboard first, not marketing."
+    - "Mode, freshness, and confidence must be visible."
+    - "Aggregate intelligence beats raw packet streams."
+    - "Replay controls make the demo explainable."
+  tensions:
+    - "Animation helps judges but can distract operators."
+    - "Diagnostics matter to builders but should stay secondary."
+    - "Mesh topology is compelling but not the first MVP proof."
+  gate_decision: proceed
+
+validation_rubric:
+  bundle_checks:
+    - check: "Dashboard-first constraint exists."
+      pass_if: "layout_constraints includes first_screen_is_dashboard: true"
+      severity: must
+    - check: "Anti-patterns cover stale state."
+      pass_if: "anti_patterns include stale/offline warning"
+      severity: must
+    - check: "Primary jobs are ranked."
+      pass_if: "primary_jobs have numeric priority values"
+      severity: must
+    - check: "User types include FE partner."
+      pass_if: "user_types contains frontend-partner"
+      severity: should
+  run_checks:
+    - check: "Wireframes cover loading, empty, stale, and error states."
+      pass_if: "wireframes.md includes all state variants for Operations Dashboard"
+      severity: must
+    - check: "API contract emits aggregate payloads."
+      pass_if: "deadzone-api-contract.yaml defines snapshot, zone aggregates, alerts, sensors, and flow vectors"
+      severity: must
+    - check: "FE task bundle maps components to API dependencies."
+      pass_if: "deadzone-agent-task-bundle.yaml includes FE tasks with contract dependencies"
+      severity: should

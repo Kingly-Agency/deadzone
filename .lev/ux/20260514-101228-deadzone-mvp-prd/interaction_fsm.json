@@ -1,0 +1,45 @@
+{
+  "screens": [
+    {
+      "id": "screen-1",
+      "name": "Operations Dashboard",
+      "states": ["loading", "streaming", "stale", "empty", "error"],
+      "transitions": [
+        {"from": "loading", "event": "snapshot_loaded", "to": "streaming"},
+        {"from": "streaming", "event": "ws_disconnect", "to": "stale"},
+        {"from": "stale", "event": "ws_reconnect", "to": "streaming"},
+        {"from": "streaming", "event": "no_active_zones", "to": "empty"},
+        {"from": "loading", "event": "config_error", "to": "error"}
+      ],
+      "feedback": ["connection_badge", "last_updated_clock", "skeleton_map", "inline_error_banner"],
+      "accessibility": ["all map layers mirrored by list summaries", "alerts not color-only", "reduced-motion freezes nonessential animation"]
+    },
+    {
+      "id": "screen-2",
+      "name": "Replay Lab",
+      "states": ["idle", "loading_scenario", "ready", "playing", "paused", "ended", "error"],
+      "transitions": [
+        {"from": "idle", "event": "select_scenario", "to": "loading_scenario"},
+        {"from": "loading_scenario", "event": "scenario_loaded", "to": "ready"},
+        {"from": "ready", "event": "play", "to": "playing"},
+        {"from": "playing", "event": "pause", "to": "paused"},
+        {"from": "playing", "event": "replay_finished", "to": "ended"},
+        {"from": "loading_scenario", "event": "load_failed", "to": "error"}
+      ],
+      "feedback": ["timeline_scrubber", "play_pause_icon", "scenario_status", "speed_badge"]
+    },
+    {
+      "id": "screen-3",
+      "name": "Sensor Mesh",
+      "states": ["loading", "available", "adapter_disabled", "empty", "partial_outage", "error"],
+      "transitions": [
+        {"from": "loading", "event": "nodes_loaded", "to": "available"},
+        {"from": "available", "event": "adapter_disabled", "to": "adapter_disabled"},
+        {"from": "available", "event": "all_nodes_offline", "to": "empty"},
+        {"from": "available", "event": "node_offline", "to": "partial_outage"},
+        {"from": "partial_outage", "event": "nodes_recovered", "to": "available"}
+      ],
+      "feedback": ["node_status_badges", "latency_chip", "link_quality_lines", "empty_state_copy"]
+    }
+  ]
+}

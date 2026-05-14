@@ -1,0 +1,54 @@
+problem:
+  statement: |
+    Crowd-intelligence platforms either require attendee apps (12% adoption ceiling)
+    or hand-wave the sensing layer entirely in demos. DeadZone proves that passive
+    RF sensing (BLE/Wi-Fi/Meshtastic) can produce a trustworthy zone-level density
+    picture in real time -- and packages it so a hackathon judge can verify the
+    claim in 5 minutes via `docker compose up`.
+
+  for_whom: |
+    Primary: hackathon judges (mixed technical literacy, 5-minute eval, two camps:
+    generalist Spectator + skeptical Investigator). Secondary: venue operators and
+    public-safety coordinators (Operator persona) evaluating real-world fit beyond
+    the demo. Tertiary: the build team themselves (must be demo-resilient).
+
+  constraints:
+    - "Cross-platform: macOS, Linux, Windows -- single `docker compose up` start"
+    - "Time-to-first-pixel under 60s on judge laptop; full demo readable in 5min"
+    - "No attendee apps, accounts, QR codes, or interaction required"
+    - "Deterministic demo path: Mock mode must produce identical visuals every run"
+    - "Honest data provenance: mode badge must be persistent and unmissable"
+    - "Aggregate-only telemetry: never display or transmit device identifiers"
+    - "Accessibility: WCAG AA color palette; no red-green-only encoding"
+    - "Graceful degradation: Live/Mesh failures must show explicit state, not blank"
+
+  success_criteria:
+    - "Judge can identify product purpose within 30 seconds of page load (5/5 in synthetic study converged on heatmap intuitive)"
+    - "At least one alert fires within 90 seconds of Mock-mode demo start"
+    - "Mode switch (Mock <-> Replay <-> Live <-> Mesh) completes in under 400ms with no white-flash"
+    - "Skeptic judge (Investigator) can drill into sensor topology + raw event stream within 3 clicks"
+    - "Operator can identify highest-density zone with numeric value (not just gradient) above the fold"
+    - "Reset-to-start works without page reload (one keyboard shortcut or button)"
+    - "Color-blind safe palette validated (viridis or equivalent + threshold pattern overlay)"
+
+  scope:
+    in:
+      - "Live venue heatmap with persistent legend + units"
+      - "Mode switcher (Mock/Replay/Live/Mesh) with auto-select-best on load"
+      - "Headline metrics bar (total occupancy, peak zone, trend arrow)"
+      - "Alerts panel with severity badges + acknowledgment (visual only in MVP)"
+      - "Sensor topology view (collapsible, coverage gaps highlighted)"
+      - "Replay scrubber + scenario picker (convention / concert exit / hallway / stadium)"
+      - "Demo reset (keyboard shortcut + button) without page reload"
+      - "Persistent data-provenance badge in all views"
+      - "Loading + empty + error states for every panel"
+
+    out:
+      - "Multi-tenant / role-based access (Carla's multi-agency view) -- post-MVP"
+      - "Alert routing to phones / radios / PA systems -- post-MVP"
+      - "Historical analytics + compliance reporting -- post-MVP"
+      - "Authentication / authorization -- hackathon demo only"
+      - "Mobile-first responsive layout -- desktop demo only"
+      - "Mesh sensor firmware (hardware track) -- spec only, no MVP build"
+      - "ML / predictive congestion -- noted as future, not in MVP"
+      - "Export / import of replay files as research datasets -- mention in pitch"

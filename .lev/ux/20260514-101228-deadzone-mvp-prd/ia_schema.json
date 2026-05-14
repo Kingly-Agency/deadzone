@@ -1,0 +1,56 @@
+{
+  "entities": [
+    {
+      "name": "Venue",
+      "attributes": ["id", "name", "bounds", "zones", "map_version"],
+      "actions": ["view", "focus_zone"]
+    },
+    {
+      "name": "Zone",
+      "attributes": ["id", "name", "polygon", "density", "pressure_score", "trend", "confidence"],
+      "actions": ["inspect", "highlight"]
+    },
+    {
+      "name": "SensorNode",
+      "attributes": ["id", "label", "kind", "zone_id", "status", "battery", "latency_ms", "last_seen"],
+      "actions": ["inspect", "toggle_overlay"]
+    },
+    {
+      "name": "FlowVector",
+      "attributes": ["id", "from_zone", "to_zone", "magnitude", "direction", "confidence"],
+      "actions": ["view"]
+    },
+    {
+      "name": "Alert",
+      "attributes": ["id", "kind", "zone_id", "severity", "message", "started_at", "duration_s", "status"],
+      "actions": ["select", "filter", "acknowledge_local"]
+    },
+    {
+      "name": "ReplayScenario",
+      "attributes": ["id", "name", "description", "duration_s", "seed", "available_speeds"],
+      "actions": ["load", "play", "pause", "restart", "scrub"]
+    },
+    {
+      "name": "StreamState",
+      "attributes": ["mode", "connected", "sequence", "clock", "freshness", "source_label"],
+      "actions": ["monitor", "change_mode"]
+    },
+    {
+      "name": "MeshLink",
+      "attributes": ["from_node", "to_node", "quality", "latency_ms", "last_packet_at"],
+      "actions": ["view"]
+    }
+  ],
+  "relationships": [
+    {"from": "Venue", "to": "Zone", "type": "has_many"},
+    {"from": "Zone", "to": "SensorNode", "type": "has_many"},
+    {"from": "Zone", "to": "Alert", "type": "has_many"},
+    {"from": "Zone", "to": "FlowVector", "type": "references"},
+    {"from": "ReplayScenario", "to": "StreamState", "type": "controls"},
+    {"from": "SensorNode", "to": "MeshLink", "type": "participates_in"}
+  ],
+  "navigation": {
+    "primary": ["Operations Dashboard", "Replay Lab", "Sensor Mesh"],
+    "secondary": ["Scenario Picker", "Diagnostics Drawer", "API Contract Reference"]
+  }
+}

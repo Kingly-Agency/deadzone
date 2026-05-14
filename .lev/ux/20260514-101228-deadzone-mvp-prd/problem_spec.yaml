@@ -1,0 +1,29 @@
+problem:
+  statement: "DeadZone needs to prove real-time physical-space intelligence in a hackathon setting without depending on attendee apps, accounts, QR codes, or unreliable RF permissions. The MVP must let judges see a deterministic venue heatmap, congestion signals, replay controls, and sensor-node status within minutes of startup."
+  for_whom: "Hackathon judges, venue operators, and the FE/BE team building the demo under time pressure."
+  constraints:
+    - "docker compose up must produce a usable local demo path."
+    - "Mock and replay modes must work on macOS, Linux, and Windows."
+    - "Live BLE, Wi-Fi, and Meshtastic must be optional adapters, not blockers."
+    - "The UI must communicate aggregate density and pressure, not identity tracking."
+    - "Frontend and backend work must proceed in parallel from stable contracts."
+  success_criteria:
+    - "Dashboard connects to a WebSocket stream and renders live density updates within 10 seconds of app load."
+    - "Replay mode can run at least 3 named scenarios with deterministic seed and speed controls."
+    - "At least 4 alert types can be emitted and visualized: congestion, queue buildup, hallway stall, sensor offline."
+    - "Sensor overlay can show active nodes, node health, packet latency, and mesh link status from mock/replay data."
+    - "A dev agent can implement each scoped task without asking for product intent clarification."
+  scope:
+    in:
+      - "Mock event generator"
+      - "Replay event engine"
+      - "FastAPI REST and WebSocket contracts"
+      - "Aggregation model for zones, flow vectors, alerts, and sensor health"
+      - "Dashboard IA, components, wireframes, and FE handoff"
+      - "Adapter interfaces for BLE and Meshtastic"
+    out:
+      - "Production identity tracking"
+      - "Cloud deployment"
+      - "Reliable Wi-Fi passive scan support on macOS/Windows"
+      - "Full Meshtastic field test"
+      - "Predictive ML beyond simple heuristics"

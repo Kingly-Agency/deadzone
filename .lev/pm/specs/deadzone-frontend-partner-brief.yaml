@@ -1,0 +1,62 @@
+meta:
+  audience: "frontend partner"
+  purpose: "Fast implementation brief for React dashboard work."
+  ux_run: ".lev/ux/20260514-101228-deadzone-mvp-prd"
+  api_contract: ".lev/pm/specs/deadzone-api-contract.yaml"
+
+build_this_first:
+  screen: "Operations Dashboard"
+  outcome: "A judge opens localhost:3000 and immediately sees a live-looking venue heatmap, mode/status strip, alert rail, sensor overlay, and replay controls."
+  components:
+    - "StreamStatusStrip"
+    - "MetricStrip"
+    - "VenueMapCanvas"
+    - "DensityHeatLayer"
+    - "FlowVectorLayer"
+    - "SensorNodeOverlay"
+    - "AlertRail"
+    - "ScenarioTransport"
+
+contract_order:
+  - "GET /api/v1/config"
+  - "GET /api/v1/snapshot"
+  - "WS /ws/live"
+  - "GET /api/v1/replay/scenarios"
+  - "POST /api/v1/replay/control"
+
+state_rules:
+  - "Render from snapshot before WebSocket connects."
+  - "Apply WebSocket messages only if sequence is newer than current sequence."
+  - "On disconnect, preserve last snapshot and mark stale."
+  - "Never show a blank map unless config and snapshot both failed."
+  - "Show source mode and freshness everywhere: mock, replay, live, stale, offline."
+
+visual_direction:
+  tone: "Dense operations console, restrained and useful."
+  avoid:
+    - "Landing page"
+    - "Oversized hero"
+    - "Decorative gradients as the main visual"
+    - "Identity-tracking language"
+  use:
+    - "Semantic severity colors paired with labels/icons"
+    - "Tabular numbers for metrics"
+    - "Clear map layering controls"
+    - "Bottom sheets on mobile"
+
+fixtures_if_backend_lags:
+  source: "Mirror `.lev/pm/specs/deadzone-api-contract.yaml` schemas exactly."
+  required_fixture_payloads:
+    - "IntelligenceSnapshot with 4 zones, 4 sensors, 2 flow vectors, 2 active alerts, and 1 mesh link."
+    - "StreamEnvelope snapshot message."
+    - "StreamEnvelope zone_update message."
+    - "StreamEnvelope alert_upsert message."
+    - "StreamEnvelope replay_state message."
+
+acceptance_checks:
+  - "First viewport is dashboard, not explanatory marketing."
+  - "Mode/freshness/connection are visible without opening a drawer."
+  - "Heatmap changes when snapshot or zone_update data changes."
+  - "Alert selection focuses the corresponding zone."
+  - "Offline sensor and stale stream states are distinct."
+  - "Mobile layout remains usable at 390px width."

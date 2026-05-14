@@ -1,0 +1,46 @@
+ontology: "deadzone.pm.task.v1"
+intent: "Create the backend contract spine that lets the frontend render config, snapshot, stream, mode control, reset, zone detail, and sensor event tail behavior from stable FastAPI surfaces."
+entity_kind: "backend_task"
+lifecycle_target: "execution_ready"
+acceptance:
+  - "OpenAPI and Pydantic models cover the consolidated backend PRD objects and required contract additions."
+  - "The backend serves health, config, snapshot, zones, sensors, replay scenarios, replay control, mode control, demo reset, zone detail, sensor event tail, and /ws/live from one runtime."
+  - "Fixture payloads for every StreamEnvelope type are generated from the backend contract and usable by the frontend partner."
+  - "Contract tests prove field names, enum values, privacy rules, and WebSocket sequence rules."
+local_refs:
+  - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json"
+  - "deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml"
+  - "deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ia_schema.json"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+local_constraints:
+  - "Do not expose raw MAC addresses, stable device identifiers, or attendee-level identity data."
+  - "Do not let frontend invent fields outside the contract."
+  - "Do not require live BLE, Wi-Fi, or Meshtastic dependencies for backend startup."
+  - "Preserve existing StreamEnvelope message types while adding missing REST surfaces."
+source_context:
+  mode: "plan"
+  summary: "Existing DeadZone PM specs define the API and task bundle; the richer UX run adds missing mode/reset/detail/raw-tail requirements needed for frontend build completeness."
+  refs:
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract"
+    - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml#paths"
+    - "deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json"
+    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
+  confidence: 0.95
+  inferred_without_design_file: true
+execution_slice_map: "execution.yaml:slices"
+grouping_reason: "All slices harden the same FE/BE contract surface and must land before downstream frontend integration."
+proposal_metrics:
+  frame_completeness: 1.0
+  slice_readiness: 0.94
+  determinism: 1.0
+  verification_strength: 0.92
+  dna_awareness: 0.9
+  unresolved: 0
+approval_source: "auto_alignment_evidence"
+auto_alignment_evidence:
+  - "User objective requested full BE PRD/propose artifacts from replay, mock, real data, and mesh context."
+  - "Existing deadzone PM specs already define FastAPI/OpenAPI/WebSocket contract ownership."
+  - "Richer UX run explicitly requires mode switch, reset, zone detail, and raw event tail FE flows."

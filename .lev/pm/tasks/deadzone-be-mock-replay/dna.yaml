@@ -1,0 +1,44 @@
+ontology: "deadzone.pm.task.v1"
+intent: "Implement deterministic Mock and Replay backend modes so the frontend can demo crowd density, movement, alerts, provenance, reset, and replay controls without live hardware."
+entity_kind: "backend_task"
+lifecycle_target: "execution_ready"
+acceptance:
+  - "Mock mode boots by default and emits deterministic dashboard snapshots from a seed."
+  - "Mock mode fires exactly one critical demo alert at 90 seconds per DemoSession and re-arms on reset."
+  - "Replay mode lists exactly four bundled scenarios and streams the same snapshot/envelope shape as Mock."
+  - "Replay controls support load, play, pause, restart, seek, and speed changes across 0.25x, 0.5x, 1x, 2x, and 4x."
+local_refs:
+  - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
+  - "deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/wireframes.md"
+local_constraints:
+  - "Mock and Replay are hardware-free and cross-platform."
+  - "Payload shape must remain identical across Mock, Replay, Live, and Mesh where objects overlap."
+  - "Reset must not reload the page."
+source_context:
+  mode: "plan"
+  summary: "The existing PM scope prioritizes mock/replay/WebSocket before live sensing; the richer UX run adds precise demo timing, replay drawer behavior, reset rules, and four scenario expectations."
+  refs:
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mock"
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.replay"
+    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-4-trigger-replay-scenario"
+    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-alerts-panel"
+  confidence: 0.96
+  inferred_without_design_file: true
+execution_slice_map: "execution.yaml:slices"
+grouping_reason: "Mock and Replay share deterministic source-frame generation, demo timing, reset, and frontend provenance behavior."
+proposal_metrics:
+  frame_completeness: 1.0
+  slice_readiness: 0.96
+  determinism: 1.0
+  verification_strength: 0.94
+  dna_awareness: 0.9
+  unresolved: 0
+approval_source: "auto_alignment_evidence"
+auto_alignment_evidence:
+  - "deadzone-agent-task-bundle.yaml priority_rule says Mock/replay/WebSocket before live sensing."
+  - "problem_spec.yaml requires deterministic Mock and Replay modes for judge evaluation."
+  - "interaction_fsm.json defines the 90-second alert, reset cascade, and replay controls."

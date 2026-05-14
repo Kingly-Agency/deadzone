@@ -1,0 +1,57 @@
+# Domain Exploration: Venue Crowd Observability
+
+## Persona 1: Maya Restrepo, Festival Operations Director
+
+Maya has run operations for mid-to-large outdoor music festivals (8,000-40,000 attendees) for nine years. She manages stage scheduling, vendor logistics, medical tent placement, and crowd flow between stages. Her team uses a mix of walkie-talkies, security camera feeds, and roving ground crews to monitor density. Every year she deals with the same nightmare: a headliner draws a surge that crushes one zone while leaving food courts deserted, medical gets overwhelmed in the wrong location, and she doesn't find out until radio chatter spikes fifteen minutes too late. She has tried app-based check-in solutions but adoption never exceeds 12% of attendees. She has budget for infrastructure but zero patience for solutions that require attendee cooperation. Her KPIs are incident count, medical response time, and vendor revenue equity across zones.
+
+### Their domain frustrations
+
+**Q1 most frustrating:** The lag. By the time a ground crew radios that Stage B is dangerously packed, it has been dangerously packed for ten minutes. Camera feeds only cover fixed angles — we miss the corridors and the bottlenecks between stages entirely. I am making real-time decisions with twenty-minute-old information stitched together from subjective radio reports. The density I actually need to act on — the 90th-percentile surge moment — is invisible until it becomes an incident. Every post-mortem says "we should have known sooner" and every year we still don't.
+
+**Q2 change one thing:** Give me a zone-level density number I can trust without requiring attendees to do anything. No app downloads, no QR scans, no wristband taps. Just a count or a heat signal per zone, updating every thirty seconds, on a map my ops team can see on a tablet. If I had that single thing, I could reposition medical, open overflow paths, and redirect food vendor signage before problems compound. Everything else — flow vectors, predictive modeling — is gravy. The baseline is just: how many people are in Zone C right now.
+
+**Q3 broken nobody talks about:** Post-event reporting is fabricated. Venue capacity compliance reports are based on ticket scans at entry gates, which tells you nothing about internal distribution. A venue can be at 60% total capacity and still have a zone at 200% safe density. Insurers and fire marshals accept gate-scan numbers because there is literally nothing better. Nobody in the industry admits that "capacity compliance" as currently practiced is a fiction that measures the wrong thing at the wrong granularity.
+
+---
+
+## Persona 2: Dr. Kwame Asante, Crowd Dynamics Researcher and Hackathon Judge
+
+Kwame is a computer science professor specializing in spatial computing and crowd simulation. He judges at university hackathons three to four times a year and reviews smart-city grant proposals. He has published on pedestrian flow modeling using agent-based simulation but is frustrated that real-world validation data is nearly impossible to obtain. Most crowd-sensing papers rely on either CCTV-based computer vision (privacy nightmare, poor coverage) or synthetic data nobody trusts. He wants to see hackathon teams build things that could actually produce ground-truth density datasets. He evaluates demos on three axes: does it work live, is the architecture defensible, and could it plausibly scale beyond the demo. He is deeply skeptical of solutions that require cloud infrastructure for real-time local sensing.
+
+### Their domain frustrations
+
+**Q1 most frustrating:** The field is drowning in simulation papers validated against other simulations. We model crowd dynamics with beautiful agent-based frameworks and then validate them against synthetic benchmarks because real spatiotemporal density data at sub-venue granularity essentially does not exist in any public dataset. The few real datasets come from CCTV-based counting, which covers fixed corridors, not open spaces. I review grant proposals every quarter that promise "real-time crowd intelligence" and every single one hand-waves the sensing layer. The gap between what we can model and what we can actually measure is embarrassing.
+
+**Q2 change one thing:** I want a reference sensing architecture that a three-person team can deploy in a room in under an hour, with no cloud dependency, that produces a timestamped density grid I can feed into my models. Open protocol, open data format, commodity hardware. Something I can point students at and say "go instrument the student union for a week and bring back real data." The barrier to entry for empirical crowd research should not be a six-figure camera installation and an IRB nightmare.
+
+**Q3 broken nobody talks about:** Hackathon demos in this space almost universally cheat. Teams show a beautiful heatmap and when you ask where the data comes from, it is a CSV they wrote by hand or a random walk generator. Judges rarely probe the sensing layer because it is hard to evaluate in a demo setting. The result is that "crowd intelligence" hackathon projects have a near-zero rate of surviving past demo day because the actual hard problem — reliable passive sensing — was never attempted. We reward visualization and punish infrastructure, which is exactly backwards.
+
+---
+
+## Persona 3: Lieutenant Carla Nguyen, Public Safety Crowd Management Coordinator
+
+Carla has spent fourteen years in municipal public safety, the last six focused on crowd management for permitted events: marathons, parades, political rallies, and holiday gatherings in urban commercial districts. She coordinates between police, fire, EMS, and private event security. Her operational reality is radio-based: sector commanders report qualitative assessments ("it's getting heavy near the south barricade") and she synthesizes these into deployment decisions from a command post. She has no technology budget of her own — she uses whatever the event organizer provides, which is usually nothing beyond camera feeds and gate counts. Her nightmares are stampede risk, blocked emergency vehicle access, and the political fallout when an incident makes the news.
+
+### Their domain frustrations
+
+**Q1 most frustrating:** I cannot see the crowd. I can see individual camera angles, I can hear radio reports, and I can look at gate scan totals, but I have no integrated picture of where density is dangerous right now across the entire event footprint. My sector commanders are experienced — they know what "too crowded" feels like — but their reports are subjective, asynchronous, and they only cover where they are physically standing. I am making resource allocation decisions for a 20-block marathon route based on six people's gut feelings relayed over congested radio channels.
+
+**Q2 change one thing:** A common operating picture for density. One screen, shared between police, fire, EMS, and event security, showing the same crowd state at the same time. Right now every agency has its own partial view and we reconcile them verbally in real time. When things go wrong, the after-action review always reveals that one agency saw the problem developing and another did not, because they were looking at different feeds. Unified situational awareness for crowd state would prevent most of the coordination failures I have seen in my career.
+
+**Q3 broken nobody talks about:** Egress planning is done once, on paper, months before the event, and never validated against actual crowd behavior. We model evacuation routes assuming uniform distribution and rational movement. In reality, crowds cluster unpredictably, people move toward perceived exits that may be blocked, and the actual egress capacity of a route changes minute by minute based on vendor placement, temporary barriers, and where the crowd has self-organized. Nobody revisits the egress plan during the event because there is no data to revisit it with. We are operating emergency response on a static map of a dynamic system.
+
+---
+
+## Comparison with intended problem
+
+The DeadZone PRD frames the problem as: "real-time crowd density / movement / congestion / dead-zones via passive sensing, deterministic-first, no attendee apps, hackathon-judge-friendly demo via Docker-compose to browser."
+
+- **Strong overlap:** All three personas independently validate the core value proposition — passive, real-time, zone-level density sensing without attendee cooperation. Maya's demand for "a zone-level density number without requiring attendees to do anything" is almost verbatim alignment. Kwame's desire for a deployable reference architecture on commodity hardware maps directly to the BLE/Wi-Fi/LoRa sensing stack and Docker-compose demo. Carla's "common operating picture" need maps to the browser-based heatmap visualization. The "no app" constraint is validated as critical by all three: Maya's 12% adoption ceiling, Kwame's skepticism of cloud-dependent solutions, and Carla's zero technology budget all converge on passive RF sensing as the right approach.
+
+- **Partial overlap:** Movement flow vectors and congestion zone detection (PRD features) are valued but secondary. Maya treats them as "gravy" beyond baseline density. Carla would use flow data for dynamic egress validation but frames it as an advanced capability beyond the first need. Kwame cares about the data format and open protocol dimension, which the PRD implies through its stack choices but does not explicitly address as a data-export or research-enablement feature. The "dead Wi-Fi areas" detection in the PRD name is not a top concern for any persona — they care about crowd dead zones (low-traffic areas), not connectivity dead zones.
+
+- **Significant divergence:** Two major gaps surface. First, multi-agency shared view — Carla's strongest need is inter-agency situational awareness (police, fire, EMS seeing the same picture), which the PRD does not address beyond a single browser endpoint. Role-based views, access control, and multi-tenant display are absent. Second, post-event analytics and compliance reporting — Maya's insight that capacity compliance reporting is a fiction based on gate scans points to a monetizable data product (historical density reports for insurers, fire marshals, venue certification) that the PRD completely ignores. Third, Kwame's emphasis on open data format and empirical research enablement suggests a developer/researcher adoption path the PRD does not contemplate but that could drive organic growth beyond the hackathon demo.
+
+## Gate recommendation
+
+**proceed** — The three personas independently converge on the PRD's core thesis: passive, real-time, zone-level crowd density sensing without attendee apps is the highest-value unsolved problem in venue operations. The divergences (multi-agency views, compliance reporting, open data formats) are expansion vectors, not contradictions — none of them invalidate the MVP scope. The hackathon-judge persona (Kwame) explicitly validates that the Docker-compose-to-browser demo approach solves a real credibility gap in this space, provided the sensing layer is genuine rather than synthetic-only. The PRD's progression model (Mock to Replay to Live to Mesh) is well-matched to Kwame's "show me it works with real data" evaluation criteria. Proceed with current framing; consider surfacing the compliance-reporting and data-export angles in future iterations.

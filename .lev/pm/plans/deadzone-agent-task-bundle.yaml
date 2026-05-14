@@ -1,0 +1,269 @@
+meta:
+  project: deadzone
+  purpose: "Hackathon MVP task bundle for BE owner, FE partner, and dev agents."
+  source_prd: "DeadZone MVP PRD in chat"
+  ux_bundle: ".lev/ux/20260514-101228-deadzone-mvp-prd/constraint_bundle.yaml"
+  api_contract: ".lev/pm/specs/deadzone-api-contract.yaml"
+  event_schema: ".lev/pm/specs/deadzone-event-envelope.schema.json"
+  priority_rule: "Mock/replay/WebSocket before live sensing."
+
+dependency_graph:
+  - id: BE-01
+    unlocks: [BE-02, BE-03, FE-01]
+  - id: BE-02
+    unlocks: [BE-03, BE-04, BE-05, FE-02]
+  - id: BE-03
+    unlocks: [FE-03, FE-04]
+  - id: BE-04
+    unlocks: [FE-05, INT-01]
+  - id: BE-05
+    unlocks: [INT-01]
+  - id: FE-01
+    unlocks: [FE-02, FE-03, FE-04, FE-05]
+  - id: INT-01
+    unlocks: [DEMO-01]
+
+backend_tasks:
+  - id: BE-01
+    title: "Scaffold FastAPI runtime and Docker path"
+    owner: "backend-agent"
+    files:
+      suggested:
+        - "backend/app/main.py"
+        - "backend/app/settings.py"
+        - "backend/pyproject.toml"
+        - "Dockerfile.backend"
+        - "docker-compose.yml"
+    scope:
+      - "Create FastAPI app with /health, CORS for localhost:3000, and settings for DEADZONE_MODE and DEADZONE_SEED."
+      - "Set up Docker compose with backend on :8000 and frontend placeholder/service on :3000."
+      - "Do not add live RF dependencies as required startup dependencies."
+    acceptance:
+      - "`docker compose up backend` starts the API."
+      - "`curl http://localhost:8000/health` returns ok=true and active mode."
+      - "Backend can start with no hardware attached."
+
+  - id: BE-02
+    title: "Define event and aggregate domain models"
+    owner: "backend-agent"
+    files:
+      suggested:
+        - "backend/app/domain/models.py"
+        - "backend/app/domain/envelopes.py"
+        - "backend/tests/test_contract_shapes.py"
+    scope:
+      - "Implement Pydantic models matching `.lev/pm/specs/deadzone-api-contract.yaml`."
+      - "Model StreamEnvelope, StreamState, IntelligenceSnapshot, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, ReplayScenario."
+      - "Keep raw SensorObservation internal to backend adapters."
+    acceptance:
+      - "Model serialization matches OpenAPI field names."
+      - "Tests cover snapshot envelope, alert_upsert envelope, and sensor_status envelope."
+
+  - id: BE-03
+    title: "Build deterministic mock event generator"
+    owner: "backend-agent"
+    files:
+      suggested:
+        - "backend/app/sources/mock.py"
+        - "backend/app/spatial/venue.py"
+        - "backend/tests/test_mock_determinism.py"
+    scope:
+      - "Generate venue zones, density blobs, flow vectors, sensor health, and alerts from a seed."
+      - "Expose async iterator or producer API that emits aggregate snapshots at stable cadence."
+      - "Include at least one queue buildup and one hallway stall event over a short loop."
+    acceptance:
+      - "Same seed produces same sequence for first 60 seconds."
+      - "At least four zones and four mock sensors are present."
+      - "Alerts can be generated without raw identity fields."
+
+  - id: BE-04
+    title: "Build replay scenario engine"
+    owner: "backend-agent"
+    files:
+      suggested:
+        - "backend/app/sources/replay.py"
+        - "backend/data/replay/convention-crowd.jsonl"
+        - "backend/data/replay/concert-exit-rush.jsonl"
+        - "backend/data/replay/hallway-stall.jsonl"
+        - "backend/tests/test_replay_controls.py"
+    scope:
+      - "Load named scenario files and stream deterministic events at configurable speed."
+      - "Support load, play, pause, restart, seek, and set_speed."
+      - "Translate replay event observations into the same aggregate snapshot shape as mock mode."
+    acceptance:
+      - "Three scenarios are listed by /api/v1/replay/scenarios."
+      - "Replay speed changes update stream clock without corrupting sequence order."
+      - "Replay end emits a stable ended/paused state usable by frontend."
+
+  - id: BE-05
+    title: "Implement WebSocket broadcaster and snapshot endpoints"
+    owner: "backend-agent"
+    files:
+      suggested:
+        - "backend/app/api/routes.py"
+        - "backend/app/api/ws.py"
+        - "backend/app/runtime/engine.py"
+        - "backend/tests/test_websocket_stream.py"
+    scope:
+      - "Serve /api/v1/config, /api/v1/snapshot, /api/v1/zones, /api/v1/sensors, replay endpoints, and /ws/live."
+      - "Broadcast StreamEnvelope messages with monotonically increasing sequence."
+      - "Keep latest snapshot available for initial load and reconnect recovery."
+    acceptance:
+      - "Frontend can render from /api/v1/snapshot before WebSocket connects."
+      - "WebSocket sends snapshot and incremental updates."
+      - "Disconnects do not crash the runtime loop."
+
+  - id: BE-06
+    title: "Add adapter interfaces and disabled live-mode stubs"
+    owner: "backend-agent"
+    files:
+      suggested:
+        - "backend/app/sources/base.py"
+        - "backend/app/sources/ble.py"
+        - "backend/app/sources/wifi.py"
+        - "backend/app/sources/mesh.py"
+    scope:
+      - "Define SensorSource interface for mock, replay, BLE, Wi-Fi, and mesh."
+      - "Return disabled reasons for BLE/Wi-Fi/Mesh when dependencies or permissions are absent."
+      - "Do not block MVP startup on bleak, scapy, or meshtastic imports."
+    acceptance:
+      - "/api/v1/config includes disabled live modes with reasons."
+      - "Switching to unavailable live mode returns 409 and preserves current mode."
+
+frontend_tasks:
+  - id: FE-01
+    title: "Build dashboard shell"
+    owner: "frontend-partner"
+    files:
+      suggested:
+        - "frontend/src/App.tsx"
+        - "frontend/src/layout/OperationsShell.tsx"
+        - "frontend/src/styles/tokens.css"
+    scope:
+      - "Create operations-first layout from UX wireframes."
+      - "Use tabs for Operations Dashboard, Replay Lab, and Sensor Mesh."
+      - "No marketing/landing screen."
+    dependencies: []
+    acceptance:
+      - "First viewport shows dashboard chrome, status strip, map region, alert rail, and transport area."
+      - "Responsive mobile layout uses map-first view with bottom sheets."
+
+  - id: FE-02
+    title: "Implement API client and stream store"
+    owner: "frontend-partner"
+    files:
+      suggested:
+        - "frontend/src/api/deadzoneClient.ts"
+        - "frontend/src/state/streamStore.ts"
+        - "frontend/src/types/deadzone.ts"
+    scope:
+      - "Load config and snapshot before opening WebSocket."
+      - "Apply StreamEnvelope messages by sequence."
+      - "Expose connected, stale, error, mode, and freshness state to UI."
+    dependencies: [BE-02, BE-05]
+    acceptance:
+      - "UI renders snapshot with WebSocket disabled."
+      - "Out-of-order messages are ignored."
+      - "Disconnect marks stream stale while preserving last snapshot."
+
+  - id: FE-03
+    title: "Render heatmap, zones, and flow vectors"
+    owner: "frontend-partner"
+    files:
+      suggested:
+        - "frontend/src/components/VenueMapCanvas.tsx"
+        - "frontend/src/components/DensityHeatLayer.tsx"
+        - "frontend/src/components/FlowVectorLayer.tsx"
+    scope:
+      - "Use the venue coordinate plane from API; Leaflet is optional if a simple coordinate plane is faster."
+      - "Render density and pressure gradients, selected zone highlight, and movement vectors."
+      - "Support reduced motion and lower-quality mobile rendering."
+    dependencies: [FE-02]
+    acceptance:
+      - "Density changes are visible within 1 second of stream updates."
+      - "Flow direction and magnitude are legible without color alone."
+      - "Reduced-motion mode remains meaningful."
+
+  - id: FE-04
+    title: "Build alerts and sensor overlay"
+    owner: "frontend-partner"
+    files:
+      suggested:
+        - "frontend/src/components/AlertRail.tsx"
+        - "frontend/src/components/SensorNodeOverlay.tsx"
+        - "frontend/src/components/MetricStrip.tsx"
+    scope:
+      - "Prioritize active critical/warning alerts."
+      - "Selecting alert focuses the map zone and shows supporting sensors."
+      - "Show sensor health, offline state, and latency."
+    dependencies: [FE-02, FE-03]
+    acceptance:
+      - "At least four alert kinds render with distinct icon/label/severity."
+      - "Offline sensor is visible and not confused with no data."
+
+  - id: FE-05
+    title: "Build replay controls"
+    owner: "frontend-partner"
+    files:
+      suggested:
+        - "frontend/src/components/ScenarioTransport.tsx"
+        - "frontend/src/screens/ReplayLab.tsx"
+    scope:
+      - "List scenarios from API."
+      - "Support play, pause, restart, speed, and scrub/seek if backend is ready."
+      - "Keep mode/provenance visible while controls are used."
+    dependencies: [BE-04, FE-02]
+    acceptance:
+      - "Replay scenario changes update the map and status strip."
+      - "Ended replay holds final frame and offers restart."
+
+  - id: FE-06
+    title: "Build Sensor Mesh screen"
+    owner: "frontend-partner"
+    files:
+      suggested:
+        - "frontend/src/screens/SensorMesh.tsx"
+        - "frontend/src/components/TopologyPanel.tsx"
+        - "frontend/src/components/DiagnosticsDrawer.tsx"
+    scope:
+      - "Show sensor nodes and mesh links from snapshot."
+      - "Represent adapter-disabled state cleanly."
+      - "Keep diagnostics secondary to the main dashboard."
+    dependencies: [FE-02]
+    acceptance:
+      - "Mock topology demonstrates gateway, nodes, latency, and link quality."
+      - "No live hardware is required to render the topology story."
+
+integration_tasks:
+  - id: INT-01
+    title: "Wire frontend to backend contract"
+    owner: "fullstack-agent"
+    scope:
+      - "Run backend and frontend together through Docker compose."
+      - "Confirm CORS, WebSocket URL, snapshot load, and replay controls."
+      - "Fix only contract mismatches, not broad refactors."
+    acceptance:
+      - "`docker compose up` exposes frontend at http://localhost:3000 and backend at http://localhost:8000."
+      - "Operations Dashboard renders stream within 10 seconds."
+      - "Replay controls change backend stream state."
+
+demo_tasks:
+  - id: DEMO-01
+    title: "Create judging scenario script"
+    owner: "demo-agent"
+    scope:
+      - "Prepare a 3-minute path: open dashboard, play convention crowd, show alert focus, switch to topology, explain live adapter path."
+      - "Document exact scenarios and expected visible changes in repo-approved format."
+    acceptance:
+      - "Demo works without BLE/Wi-Fi/Meshtastic hardware."
+      - "The story explicitly names mock, replay, and future mesh progression."
+
+parallelization_notes:
+  immediate_parallel_tracks:
+    - "BE-01 + FE-01 can start together."
+    - "BE-02 should finish before FE-02 hardens types."
+    - "FE-03 can start with static fixtures matching the API contract while BE-05 is in progress."
+  avoid:
+    - "Do not let FE invent payload fields outside the contract."
+    - "Do not let BE expose raw device identifiers."
+    - "Do not start live BLE/Wi-Fi work before mock/replay is stable."

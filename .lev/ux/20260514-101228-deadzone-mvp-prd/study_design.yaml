@@ -1,0 +1,35 @@
+study:
+  stimulus:
+    type: "feature_concept"
+    content: "A local-first DeadZone dashboard streams mock or replay sensor events into a live venue heatmap with alerts, flow vectors, and sensor/mesh overlays. Optional adapters can later provide BLE, Wi-Fi, and Meshtastic telemetry."
+  personas:
+    - id: "judge-five-minute-evaluator"
+      description: "A hackathon judge evaluating whether the demo is understandable, stable, and technically credible in one short walkthrough."
+      key_dimensions:
+        - "time_pressure: high; must understand value without setup friction."
+        - "technical_depth: moderate; can appreciate architecture if visible through behavior."
+        - "skepticism: high; needs deterministic proof and no hand-wavy RF claims."
+      prompt_injection: |
+        You are a hackathon judge. React to this product as someone who has five minutes, expects local startup, and wants proof that the system is more than an animation.
+    - id: "venue-ops-commander"
+      description: "A venue operator deciding whether the dashboard helps allocate staff and notice congestion before it becomes a problem."
+      key_dimensions:
+        - "operational_focus: high; cares about alerts, trend, severity, and location."
+        - "privacy_sensitivity: high; rejects identity-like tracking."
+        - "visual_tolerance: low; needs readable dense information, not decoration."
+      prompt_injection: |
+        You run crowd operations for a busy event venue. React to this product based on whether it helps you act quickly and safely without tracking individuals.
+    - id: "frontend-partner"
+      description: "The teammate implementing the React dashboard from API contracts and UX constraints."
+      key_dimensions:
+        - "handoff_dependency: high; needs stable schemas, states, and component boundaries."
+        - "time_pressure: high; wants smallest shippable UI slice first."
+        - "risk_awareness: high; dislikes changing WebSocket payloads mid-build."
+      prompt_injection: |
+        You are the frontend partner. React to the product based on what you need from backend and UX to build quickly without rework.
+  matrix:
+    models:
+      - "codex-local-synthesis: used for fast synthetic evaluation in-session; no external tribunal dispatched."
+    cli_runners:
+      - "none: hackathon scoping mode; results are synthetic and marked as such."
+  rationale: "The three personas cover judge clarity, venue usefulness, and implementation handoff risk. The study looks for convergence around first-screen clarity, mode/freshness visibility, and stable API contracts."

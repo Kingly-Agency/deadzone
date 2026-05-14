@@ -1,0 +1,1 @@
+Kick off UX for the DeadZone MVP PRD while scoping backend work, then prepare a frontend/UI handoff based on UX and API contracts for a frontend partner and dev agents.

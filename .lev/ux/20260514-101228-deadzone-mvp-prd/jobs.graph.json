@@ -1,0 +1,52 @@
+{
+  "jobs": [
+    {
+      "id": "job-1",
+      "statement": "When I open the demo as a judge, I want to immediately see crowd pressure changing, so I can understand the product without setup or explanation.",
+      "type": "functional",
+      "triggers": ["app_load", "demo_start"],
+      "user_types": ["judge-five-minute-evaluator"],
+      "priority": 1
+    },
+    {
+      "id": "job-2",
+      "statement": "When congestion starts forming, I want a clear alert with location, severity, and trend, so I can decide where attention is needed.",
+      "type": "functional",
+      "triggers": ["pressure_score_threshold", "queue_growth", "flow_stall"],
+      "user_types": ["venue-ops-commander"],
+      "priority": 2
+    },
+    {
+      "id": "job-3",
+      "statement": "When data changes source from mock to replay or live, I want that provenance visible, so I can trust what the display means.",
+      "type": "functional",
+      "triggers": ["mode_change", "adapter_status_change", "websocket_reconnect"],
+      "user_types": ["judge-five-minute-evaluator", "venue-ops-commander", "frontend-partner"],
+      "priority": 3
+    },
+    {
+      "id": "job-4",
+      "statement": "When I implement the UI, I want stable aggregate payloads and explicit states, so I can build the dashboard without reverse-engineering backend behavior.",
+      "type": "functional",
+      "triggers": ["frontend_start", "api_contract_review"],
+      "user_types": ["frontend-partner"],
+      "priority": 4
+    },
+    {
+      "id": "job-5",
+      "statement": "When I present the architecture, I want to show a path from replay to mesh sensing, so I can make the demo feel extensible without live hardware dependency.",
+      "type": "social",
+      "triggers": ["judge_questions", "demo_architecture_walkthrough"],
+      "user_types": ["judge-five-minute-evaluator", "backend-owner"],
+      "priority": 5
+    },
+    {
+      "id": "job-6",
+      "statement": "When the stream stalls or sensors disappear, I want the UI to degrade visibly, so I can distinguish a real issue from no crowd activity.",
+      "type": "emotional",
+      "triggers": ["websocket_disconnect", "sensor_offline", "stale_snapshot"],
+      "user_types": ["venue-ops-commander", "frontend-partner"],
+      "priority": 6
+    }
+  ]
+}

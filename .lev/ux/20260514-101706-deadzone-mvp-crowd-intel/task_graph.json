@@ -1,0 +1,162 @@
+{
+  "tasks": [
+    {
+      "id": "task-1-land",
+      "name": "Land on dashboard and grasp purpose",
+      "entry_state": "URL loaded, no prior session",
+      "exit_state": "User sees animated heatmap, headline metric, mode badge within 2s",
+      "happy_path": [
+        "Browser hits http://localhost:3000",
+        "App boots in Mock mode by default (auto-select)",
+        "Skeleton renders within 200ms",
+        "WebSocket connects, first frame paints",
+        "Headline metric (e.g., '1,247 attendees, 72% capacity') appears top-left",
+        "Mode badge ('MOCK -- simulated data') visible top-right",
+        "Heatmap animates with synthetic crowd movement"
+      ],
+      "failure_modes": [
+        "Docker not running -> show terminal hint",
+        "Port 3000 conflict -> dev script prints alternate URL",
+        "WebSocket fails -> banner 'connection issue, retrying...' + skeleton persists, never blank"
+      ],
+      "depends_on": [],
+      "jobs": ["job-1-glance"]
+    },
+    {
+      "id": "task-2-switch-mode",
+      "name": "Switch data mode",
+      "entry_state": "Dashboard loaded in Mock mode",
+      "exit_state": "Active mode is Replay/Live/Mesh; badge updated; heatmap reflects new source",
+      "happy_path": [
+        "User clicks mode chip in header",
+        "Dropdown shows 4 options with availability indicator (green dot = ready, gray = unavailable)",
+        "User selects Replay",
+        "Crossfade transition (300ms) instead of white flash",
+        "Mode badge color/label updates immediately",
+        "Replay scenario picker slides in below header"
+      ],
+      "failure_modes": [
+        "Live mode selected but no sensors detected -> show 'No sensors found' + auto-fallback option",
+        "Mesh gateway offline -> mode chip greyed with tooltip 'Gateway not reachable'",
+        "Replay file missing -> show scenario picker with 'Sample scenarios' fallback list"
+      ],
+      "depends_on": ["task-1-land"],
+      "jobs": ["job-2-trust"]
+    },
+    {
+      "id": "task-3-inspect-zone",
+      "name": "Inspect a zone's occupancy and trend",
+      "entry_state": "Heatmap visible with multiple zones",
+      "exit_state": "Zone detail panel open with numeric count, % capacity, 5-min trend sparkline",
+      "happy_path": [
+        "User clicks a zone polygon (or hot spot) on the map",
+        "Zone polygon highlights with thicker outline",
+        "Right-side panel slides in (or bottom sheet on smaller viewports)",
+        "Panel shows: zone name, current count, % capacity, trend arrow, sparkline, alerts for this zone",
+        "Optional: 'Set capacity threshold' control (Operator-only affordance, hidden in Spectator)"
+      ],
+      "failure_modes": [
+        "Zone has no recent data -> show 'Awaiting sensor reports' with last-seen timestamp",
+        "Sparkline data sparse -> show dots instead of line, label '< 5min of data'"
+      ],
+      "depends_on": ["task-1-land"],
+      "jobs": ["job-3-act"]
+    },
+    {
+      "id": "task-4-trigger-replay-scenario",
+      "name": "Replay a recorded scenario",
+      "entry_state": "Mode switched to Replay",
+      "exit_state": "Scenario plays back at chosen speed with scrubber visible",
+      "happy_path": [
+        "Scenario picker shows 4 default scenarios with thumbnail",
+        "User picks 'Concert exit rush'",
+        "Player loads (skeleton 400ms), scrubber appears at bottom",
+        "Playback starts at 1x; user can adjust speed (0.25x .. 4x)",
+        "Heatmap updates from recorded event stream",
+        "User can scrub backwards to inspect a specific moment"
+      ],
+      "failure_modes": [
+        "Scenario file corrupt -> show 'Unable to load scenario' + list other scenarios",
+        "Scrubber jitter at high speed -> auto-cap speed at 4x and warn"
+      ],
+      "depends_on": ["task-2-switch-mode"],
+      "jobs": ["job-1-glance", "job-2-trust"]
+    },
+    {
+      "id": "task-5-acknowledge-alert",
+      "name": "View and dismiss an alert",
+      "entry_state": "Active alert in alerts panel",
+      "exit_state": "Alert marked acknowledged (visual only in MVP); panel collapses or shows next",
+      "happy_path": [
+        "Alert appears in panel with severity badge (info/warn/critical), zone link, timestamp",
+        "Toast briefly surfaces critical alerts (auto-dismiss 6s)",
+        "User clicks alert -> highlights zone on map + opens zone detail",
+        "User clicks 'Acknowledge' -> alert greys out, moves to bottom",
+        "Counter updates: '1 active, 3 acknowledged'"
+      ],
+      "failure_modes": [
+        "No alerts active -> panel shows 'No active alerts -- system nominal' (not blank)",
+        "Alert source zone removed -> show 'Source no longer tracked' instead of broken link"
+      ],
+      "depends_on": ["task-1-land"],
+      "jobs": ["job-3-act", "job-1-glance"]
+    },
+    {
+      "id": "task-6-inspect-topology",
+      "name": "View sensor topology + drill into a sensor",
+      "entry_state": "Topology panel collapsed in header (icon)",
+      "exit_state": "Topology tab open; sensor selected with raw event tail visible",
+      "happy_path": [
+        "User clicks topology icon (collapsible to keep Spectator view clean)",
+        "Right-side panel becomes Topology tab",
+        "Map switches overlay: sensors rendered as nodes with health color (green/amber/red)",
+        "Coverage gaps highlighted with diagonal hatch pattern",
+        "User clicks a sensor node",
+        "Sensor detail: id, type (BLE/WiFi/Mesh), last-seen, RSSI sample, raw event tail (last 10 events)"
+      ],
+      "failure_modes": [
+        "No sensors in Mock -> show 8 simulated nodes with 'mock' badge",
+        "Live mode 0 sensors -> empty state: 'No sensors discovered. Check BLE permissions.' + diagnostic link"
+      ],
+      "depends_on": ["task-1-land"],
+      "jobs": ["job-5-validate-coverage", "job-6-investigate"]
+    },
+    {
+      "id": "task-7-reset-demo",
+      "name": "Reset demo timeline without reload",
+      "entry_state": "Mid-demo, any mode",
+      "exit_state": "Mock timeline reset to t=0, alerts cleared, badge unchanged",
+      "happy_path": [
+        "User presses R key (or clicks discreet reset icon in header)",
+        "Confirmation toast: 'Reset demo timeline' (auto-dismiss 2s)",
+        "Heatmap fades to t=0 state in 400ms",
+        "Alerts panel clears, returns to 'No active alerts -- system nominal'",
+        "Mock event sequence restarts; 90s alert re-armed"
+      ],
+      "failure_modes": [
+        "Reset triggered while in Live mode -> confirm modal: 'Live mode -- reset disconnects current sensors. Continue?'",
+        "WebSocket reconnect needed -> brief 'reconnecting' state then resume"
+      ],
+      "depends_on": ["task-1-land"],
+      "jobs": ["job-4-rehearse"]
+    },
+    {
+      "id": "task-8-handle-degradation",
+      "name": "Recover when Live or Mesh fails mid-demo",
+      "entry_state": "Live or Mesh mode active",
+      "exit_state": "User aware of failure, has options (retry, fallback, dismiss)",
+      "happy_path": [
+        "Sensor reports stop for > 30s",
+        "Mode badge gains warning ring + tooltip 'Sensor stream stalled'",
+        "Toast offers: 'Switch to Replay (last 5min cached) | Retry Live | Dismiss'",
+        "User picks Replay -> seamless transition using cached buffer"
+      ],
+      "failure_modes": [
+        "Cached buffer empty -> offer Mock fallback explicitly",
+        "User dismisses without action -> dashboard continues with last-known state + persistent stale-data indicator"
+      ],
+      "depends_on": ["task-2-switch-mode"],
+      "jobs": ["job-2-trust", "job-4-rehearse"]
+    }
+  ]
+}

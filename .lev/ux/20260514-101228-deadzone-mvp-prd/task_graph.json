@@ -1,0 +1,92 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "Open operations dashboard",
+      "entry_state": "frontend loaded, backend reachable or reconnecting",
+      "exit_state": "venue map, status strip, and initial stream state are visible",
+      "happy_path": [
+        "Load /",
+        "Fetch /api/v1/config and /api/v1/snapshot",
+        "Open /ws/live",
+        "Render first snapshot or skeleton state"
+      ],
+      "failure_modes": [
+        "Backend unavailable: show reconnecting status and preserve layout",
+        "Snapshot empty: show venue shell with zero-density state",
+        "WebSocket blocked: continue polling snapshot endpoint if implemented"
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "task-2",
+      "name": "Run deterministic replay",
+      "entry_state": "dashboard connected and replay scenarios loaded",
+      "exit_state": "selected scenario streams events at chosen speed",
+      "happy_path": [
+        "Choose scenario",
+        "Press play",
+        "Adjust speed",
+        "Watch heatmap, flow vectors, alerts, and timeline update"
+      ],
+      "failure_modes": [
+        "Scenario missing: show scenario error with fallback to mock",
+        "Replay end: pause at final frame with restart action",
+        "Invalid speed: clamp to supported range"
+      ],
+      "depends_on": ["task-1"]
+    },
+    {
+      "id": "task-3",
+      "name": "Inspect congestion alert",
+      "entry_state": "at least one active alert exists",
+      "exit_state": "alert details and map focus are visible",
+      "happy_path": [
+        "Alert appears in right rail",
+        "Select alert",
+        "Map highlights affected zone",
+        "Details show severity, duration, source mode, and supporting sensors"
+      ],
+      "failure_modes": [
+        "Alert resolved during inspection: mark resolved and keep details readable",
+        "Zone missing: show alert without map focus and log schema mismatch"
+      ],
+      "depends_on": ["task-1"]
+    },
+    {
+      "id": "task-4",
+      "name": "Inspect sensor overlay",
+      "entry_state": "sensor nodes are present in snapshot",
+      "exit_state": "node health, latency, mode, and mesh links are visible",
+      "happy_path": [
+        "Toggle sensor layer",
+        "Select node",
+        "Read health and latency",
+        "Switch to topology panel for mesh links"
+      ],
+      "failure_modes": [
+        "No sensors: show empty overlay state",
+        "Offline sensor: keep node visible with offline status",
+        "Mesh unavailable: hide links and explain adapter-disabled state"
+      ],
+      "depends_on": ["task-1"]
+    },
+    {
+      "id": "task-5",
+      "name": "Switch data mode",
+      "entry_state": "backend exposes available modes",
+      "exit_state": "mode changes or rejects with clear reason",
+      "happy_path": [
+        "Open mode control",
+        "Choose mock or replay",
+        "Backend emits mode_changed event",
+        "UI updates provenance badge and stream"
+      ],
+      "failure_modes": [
+        "Live adapter unavailable: disabled option shows reason",
+        "Mode switch fails: keep previous mode and show error"
+      ],
+      "depends_on": ["task-1"]
+    }
+  ]
+}

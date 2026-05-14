@@ -1,0 +1,251 @@
+topology: "cascade"
+runtime_profile: "codex-backend-adapters"
+validation_chain:
+  - frame_complete_gate
+  - plan_alignment_gate
+  - convergence_gate
+  - slice_verticality_gate
+  - slice_alignment_gate
+  - feedback_loop_gate
+  - cold_start_context_gate
+  - adversarial_constraint_gate
+  - execution_ready_gate
+receipt_policy: "append_only"
+checkpoint_policy: "forward_only"
+budget:
+  max_iterations: 3
+  timeout: "5h"
+exit_conditions:
+  - "Adapter interface, disabled mode responses, stale/fallback stream behavior, and mesh topology tests pass without live hardware."
+  - "Mock and Replay still start without BLE, Wi-Fi, or Meshtastic dependencies installed."
+slices:
+  - id: "live-01-adapter-interface-disabled-modes"
+    title: "Create optional live adapter interface and disabled modes"
+    focus: "Real-data readiness without hardware-dependent startup failures."
+    type: "AFK"
+    blocked_by:
+      - "deadzone-be-contract-spine:contract-01-runtime-contract"
+    behavior_coverage:
+      - "A6"
+      - "A8"
+      - "task-2-switch-mode"
+    acceptance:
+      - "SensorSource protocol supports mock, replay, ble, wifi, mesh, and hybrid sources."
+      - "bleak, scapy, and meshtastic imports are optional and lazy."
+      - "/api/v1/config disabled_modes includes reasons for missing dependency, permission, device, or gateway."
+      - "Switching to unavailable live mode returns 409 ErrorResponse and preserves current mode."
+    what_to_build: "Implement adapter interface, BLE/Wi-Fi/Mesh stub modules, optional dependency detection, disabled mode reporting, and mode switch errors."
+    why_this_slice: "The UI needs credible real-data progression and disabled reasons while the hackathon demo remains hardware-free."
+    acceptance_criteria:
+      - "Backend starts in mock mode with no BLE, Wi-Fi, or Meshtastic packages installed."
+      - "ModeDropdown can show unavailable reasons from config."
+      - "No adapter returns raw identity data to the contract layer."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml#mode_strategy"
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.live"
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
+      known_reds:
+        - "Real BLE/Wi-Fi/Mesh capture can remain stubbed behind interfaces for MVP."
+      forbidden_moves:
+        - "Do not add adapter packages as required base dependencies."
+        - "Do not silently switch Live/Mesh failures to Mock."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_adapter_modes.py backend/tests/test_mode_control.py"
+      inputs:
+        - "environment without optional adapter packages"
+        - "mode switch requests"
+      outputs:
+        - "Passing adapter disabled and mode-control tests"
+      pass_fail: "Pass when backend startup succeeds without hardware and disabled modes are explicit."
+    stages:
+      - id: "stage-source-protocol"
+        action: "Define SensorSource protocol and adapter capability report."
+        verify: "pytest backend/tests/test_adapter_modes.py -k protocol"
+      - id: "stage-disabled-reasons"
+        action: "Implement optional dependency checks and disabled_modes config output."
+        verify: "pytest backend/tests/test_adapter_modes.py -k disabled"
+      - id: "stage-mode-409"
+        action: "Return recoverable 409 on unavailable live/mesh switch."
+        verify: "pytest backend/tests/test_mode_control.py -k unavailable"
+    design_refs:
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract.required_additions_to_existing_contract.POST_/api/v1/mode"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-2-switch-mode"
+    write_scope:
+      - "deadzone/backend/app/sources/base.py"
+      - "deadzone/backend/app/sources/ble.py"
+      - "deadzone/backend/app/sources/wifi.py"
+      - "deadzone/backend/app/sources/mesh.py"
+      - "deadzone/backend/tests/test_adapter_modes.py"
+      - "deadzone/backend/tests/test_mode_control.py"
+    constraints:
+      - "Adapter capability state must be visible through config and mode errors."
+      - "Adapter stubs must produce no false claim of live data."
+    failure_modes:
+      - "Backend crashes on machines without RF permissions."
+      - "Frontend cannot explain why Live or Mesh is greyed out."
+      - "Mode state changes despite adapter unavailability."
+    verify: "cd deadzone && pytest backend/tests/test_adapter_modes.py backend/tests/test_mode_control.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "deadzone-backend-scope.yaml mode_strategy"
+      - "task_graph.json task-2 failure modes"
+
+  - id: "live-02-stale-fallback-cache"
+    title: "Implement Live/Mesh stale and replay fallback semantics"
+    focus: "Explicit degradation path for real-data modes with cached Replay fallback."
+    type: "AFK"
+    blocked_by:
+      - "live-01-adapter-interface-disabled-modes"
+      - "deadzone-be-mock-replay:replay-01-scenarios-controls"
+    behavior_coverage:
+      - "A6"
+      - "task-8-handle-degradation"
+    acceptance:
+      - "No live or mesh frame for 30 seconds marks StreamState freshness=stale and emits visible stale status."
+      - "No frame for 60 seconds offers Replay fallback when a cached buffer exists."
+      - "No frame for 120 seconds escalates to persistent unavailable banner state through stream/config data."
+      - "Accepting fallback switches to replay mode with cached buffer and emits a mode switch stream event."
+    what_to_build: "Add frame watchdog, last-good snapshot cache, replay fallback buffer, stale/offline state transitions, and WebSocket events aligned to UX timing."
+    why_this_slice: "The UX trust requirement is explicit failure visibility for Live/Mesh, not an optimistic silent recovery."
+    acceptance_criteria:
+      - "Dashboard can preserve last-known data while freshness changes to stale."
+      - "Fallback offer uses replay when cache exists and mock when cache is empty."
+      - "Dismissed fallback keeps stale indicator and last-known snapshot."
+    operator_context:
+      exact_inputs:
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-8-handle-degradation"
+      known_reds:
+        - "Use fake clocks in tests to avoid real 30/60/120 second waits."
+      forbidden_moves:
+        - "Do not erase last-known data on disconnect."
+        - "Do not hide Live/Mesh stall by changing the visible mode to Mock."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_mode_degradation.py backend/tests/test_websocket_stream.py -k stale"
+      inputs:
+        - "fake clock"
+        - "live/mesh source frame stoppage"
+        - "cached replay buffer"
+      outputs:
+        - "Passing stale, fallback, and stream event tests"
+      pass_fail: "Pass when 30/60/120 second transitions and fallback actions match the interaction FSM."
+    stages:
+      - id: "stage-watchdog"
+        action: "Add frame watchdog and freshness transitions."
+        verify: "pytest backend/tests/test_mode_degradation.py -k stale_30s"
+      - id: "stage-fallback"
+        action: "Add cached replay fallback offer and accept/dismiss handling."
+        verify: "pytest backend/tests/test_mode_degradation.py -k fallback_60s"
+      - id: "stage-escalation"
+        action: "Add 120-second persistent unavailable state."
+        verify: "pytest backend/tests/test_mode_degradation.py -k unavailable_120s"
+    design_refs:
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#D5"
+    write_scope:
+      - "deadzone/backend/app/runtime/**"
+      - "deadzone/backend/app/sources/**"
+      - "deadzone/backend/tests/test_mode_degradation.py"
+      - "deadzone/backend/tests/test_websocket_stream.py"
+    constraints:
+      - "Freshness state is part of StreamState and must be visible to FE."
+      - "Fallback action must preserve provenance."
+    failure_modes:
+      - "Blank map on Live/Mesh disconnect."
+      - "Silent fallback looks dishonest to technical judges."
+      - "Replay fallback uses stale cache without marking provenance."
+    verify: "cd deadzone && pytest backend/tests/test_mode_degradation.py backend/tests/test_websocket_stream.py -k stale"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "interaction_fsm.json gt-sensor-stream-stalled"
+      - "task_graph.json task-8-handle-degradation"
+
+  - id: "mesh-01-topology-readiness"
+    title: "Expose Mesh topology readiness"
+    focus: "Gateway and node topology data that lets the frontend tell the Mesh story without firmware implementation."
+    type: "AFK"
+    blocked_by:
+      - "live-01-adapter-interface-disabled-modes"
+      - "deadzone-be-intelligence-alerts:intel-02-alerts-topology"
+    behavior_coverage:
+      - "A7"
+      - "task-6-inspect-topology"
+    acceptance:
+      - "Mesh topology includes mesh_gateway and mesh_node sensor kinds."
+      - "MeshLink includes from_node, to_node, quality, latency_ms, and last_packet_at."
+      - "Gateway unreachable reports disabled or stale state without removing topology story."
+      - "Mock topology can show mesh-like links for demo and FE build."
+    what_to_build: "Implement mesh topology capability objects, mock gateway/node fixtures, link quality summaries, and adapter-disabled gateway reason mapping."
+    why_this_slice: "Mesh is the answer to the Wi-Fi-dependency critique, but MVP needs a credible topology story before field hardware."
+    acceptance_criteria:
+      - "Sensor Mesh FE screen can render gateway, nodes, latency, and link quality without live hardware."
+      - "Mode copy distinguishes Live BLE/Wi-Fi from Mesh network provenance."
+      - "Mesh unavailable state is inspectable and recoverable."
+    operator_context:
+      exact_inputs:
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/domain_exploration.md"
+        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#SensorNode"
+      known_reds:
+        - "No Meshtastic field validation is required for MVP completion."
+      forbidden_moves:
+        - "Do not implement firmware or hardware provisioning in this slice."
+        - "Do not make mesh topology the primary dashboard payload path."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_mesh_topology.py backend/tests/test_adapter_modes.py -k mesh"
+      inputs:
+        - "mock mesh topology fixture"
+        - "mesh disabled capability report"
+      outputs:
+        - "Passing mesh topology and disabled-mode tests"
+      pass_fail: "Pass when mesh topology can be rendered from snapshot and unavailable gateway state is explicit."
+    stages:
+      - id: "stage-mesh-fixture"
+        action: "Create mock mesh gateway/node/link topology fixture."
+        verify: "pytest backend/tests/test_mesh_topology.py -k fixture"
+      - id: "stage-link-quality"
+        action: "Expose link quality and latency summaries in MeshLink objects."
+        verify: "pytest backend/tests/test_mesh_topology.py -k link"
+      - id: "stage-gateway-disabled"
+        action: "Map gateway unreachable state to config and stream freshness."
+        verify: "pytest backend/tests/test_adapter_modes.py -k mesh"
+    design_refs:
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#E5"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-6-inspect-topology"
+    write_scope:
+      - "deadzone/backend/app/sources/mesh.py"
+      - "deadzone/backend/app/spatial/topology.py"
+      - "deadzone/backend/tests/test_mesh_topology.py"
+      - "deadzone/backend/tests/test_adapter_modes.py"
+    constraints:
+      - "Mesh firmware is out of scope."
+      - "Topology fixtures must use the same SensorNode and MeshLink schemas as future adapters."
+    failure_modes:
+      - "Wi-Fi-dependency critique remains unaddressed."
+      - "Mesh appears as pure UI decoration without backend data."
+      - "Gateway unavailable state crashes or blanks topology."
+    verify: "cd deadzone && pytest backend/tests/test_mesh_topology.py backend/tests/test_adapter_modes.py -k mesh"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "user_and_agent_research.md E5"
+      - "deadzone-backend-scope.yaml mode_strategy.mesh"

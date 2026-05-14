@@ -1,0 +1,5 @@
+/ux on # DeadZone MVP PRD - Mock → Replay → Mesh Progression
+Crowd intelligence platform: live density, movement flow, congestion zones, dead Wi-Fi areas, distributed BLE/Wi-Fi/Meshtastic sensing.
+Stack: FastAPI + React + Leaflet + Heatmap.js. Docker compose up → http://localhost:3000.
+Modes: Mock (synthetic), Replay (recorded streams), Live (BLE/Wi-Fi), Mesh (LoRa).
+Audience: hackathon judges (primary), venue operators (future).

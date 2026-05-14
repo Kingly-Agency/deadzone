@@ -1,0 +1,201 @@
+meta:
+  project: deadzone
+  component: backend
+  artifact: consolidated_backend_prd
+  status: ready_for_propose_execution
+  created_at: 2026-05-14
+  purpose: "Combine all local .lev PM and UX evidence into the backend product requirements that unblock the frontend build."
+  canonical_task_artifacts:
+    - "deadzone/.lev/pm/tasks/deadzone-be-contract-spine/dna.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-contract-spine/execution.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/dna.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/execution.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-mock-replay/dna.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-mock-replay/execution.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-live-mesh/dna.yaml"
+    - "deadzone/.lev/pm/tasks/deadzone-be-live-mesh/execution.yaml"
+
+source_map:
+  canonical_pm:
+    - path: "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
+      role: "Existing backend MVP scope, runtime architecture, mode strategy, and done checks."
+    - path: "deadzone/.lev/pm/specs/deadzone-api-contract.yaml"
+      role: "Existing OpenAPI and WebSocket contract for FE/BE boundary."
+    - path: "deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json"
+      role: "Existing StreamEnvelope schema and FE/BE stream rules."
+    - path: "deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml"
+      role: "Existing FE build order, fixture expectations, and dashboard state rules."
+    - path: "deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml"
+      role: "Existing BE/FE/INT/DEMO task graph to convert into propose artifacts."
+  ux_sources:
+    - path: "deadzone/.lev/ux/20260514-101228-deadzone-mvp-prd/"
+      role: "Earlier UX and PM handoff run; establishes dashboard-first constraint, aggregate payloads, and task bundle context."
+    - path: ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/"
+      role: "Richer UX run; adds explicit Mock/Replay/Live/Mesh progression, interaction FSM, timing requirements, topology drill-down, reset, and degradation behavior."
+
+source_resolution:
+  - issue: "Scenario count differs between existing PM scope and richer UX run."
+    decision: "Ship exactly four bundled replay scenarios for FE controls: convention-crowd, concert-exit-rush, hallway-stall, stadium-ingress."
+    rationale: "Existing backend scope requires three named scenarios; the richer UX run names a fourth stadium path in the replay picker. Four covers both without ambiguity."
+  - issue: "Mode names differ between API contract and UX copy."
+    decision: "Backend enum remains [mock, replay, ble, wifi, mesh, hybrid]; FE copy groups ble and wifi under Live while mesh remains Mesh."
+    rationale: "The API needs adapter-level precision; the UI needs judge-readable provenance."
+  - issue: "Earlier FE brief uses three screens while richer UX emphasizes a single-screen dashboard."
+    decision: "Backend supports dashboard-first data from one snapshot/stream; Replay Lab and Sensor Mesh are optional FE views over the same contract."
+    rationale: "The first viewport must prove value in under 30 seconds; secondary views must not require alternate payload shapes."
+  - issue: "Existing API contract lacks some richer UX actions."
+    decision: "Contract-spine task must add explicit mode control, demo reset, zone detail, and raw event tail surfaces while preserving the existing snapshot and WebSocket envelope."
+    rationale: "The FE cannot implement reset, mode switching, zone drill-down, or sensor raw tail reliably from the current contract alone."
+
+product_intent:
+  one_sentence: "DeadZone is a local-first FastAPI backend that produces trustworthy aggregate crowd intelligence for a React dashboard across Mock, Replay, Live, and Mesh modes without requiring attendee participation."
+  primary_audience:
+    - "Hackathon judges who need to verify a credible technical demo in five minutes."
+    - "Frontend partner building the React dashboard from stable contracts."
+    - "Venue operators and public-safety evaluators who care about zone-level density, degradation visibility, and no app adoption dependency."
+  trust_claims:
+    - "Provenance is visible for every data frame: mock, replay, live, mesh, stale, or offline."
+    - "Mock and replay payloads match live payload shapes so the FE does not rebuild per mode."
+    - "Raw device identity never leaves adapter scope; displayed data is aggregate density, movement, health, and alerts."
+    - "Live and Mesh failures produce explicit stale/offline states, not blank screens."
+
+frontend_dependency_contract:
+  startup_order:
+    - "GET /api/v1/config"
+    - "GET /api/v1/snapshot"
+    - "WS /ws/live"
+    - "GET /api/v1/replay/scenarios"
+    - "POST /api/v1/replay/control"
+  required_additions_to_existing_contract:
+    - endpoint: "POST /api/v1/mode"
+      purpose: "Switch active backend source to mock, replay, ble, wifi, mesh, or hybrid; return StreamState or 409 disabled reason."
+      supports_ux: ["task-2-switch-mode", "screen-mode-switcher"]
+    - endpoint: "POST /api/v1/demo/reset"
+      purpose: "Reset DemoSession without page reload; clear alerts, reset replay clock, re-arm the 90s mock alert, and return the first post-reset snapshot."
+      supports_ux: ["task-7-reset-demo", "screen-demo-reset"]
+    - endpoint: "GET /api/v1/zones/{zone_id}"
+      purpose: "Return ZoneAggregate plus trend_5m, current alerts, last_seen, and flow direction for zone detail."
+      supports_ux: ["task-3-inspect-zone", "screen-zone-detail"]
+    - endpoint: "GET /api/v1/sensors/{sensor_id}/events"
+      purpose: "Return the last 10 privacy-safe raw telemetry summaries for the sensor detail panel."
+      supports_ux: ["task-6-inspect-topology", "SensorDetailCard", "RawEventTail"]
+  required_snapshot_objects:
+    - "StreamState"
+    - "Venue"
+    - "ZoneAggregate"
+    - "FlowVector"
+    - "Alert"
+    - "SensorNode"
+    - "MeshLink"
+    - "SnapshotMetrics"
+  stream_envelope_rules:
+    - "sequence is monotonically increasing per backend runtime."
+    - "FE ignores envelopes with sequence lower than the last applied sequence."
+    - "StreamEnvelope mode and StreamState mode always match."
+    - "error envelopes are recoverable when recoverable=true and preserve the last good snapshot."
+
+modes:
+  mock:
+    priority: 1
+    default_on_first_boot: true
+    requirements:
+      - "Seeded synthetic crowd density, flow vectors, alerts, and sensor health."
+      - "Same seed produces the same first 60 seconds of snapshots."
+      - "Exactly one critical demo alert fires at 90 seconds per DemoSession unless reset re-arms it."
+      - "Eight simulated sensor nodes are available for topology drill-down."
+    frontend_copy: "MOCK -- simulated data"
+  replay:
+    priority: 2
+    requirements:
+      - "Four bundled replay scenarios: convention-crowd, concert-exit-rush, hallway-stall, stadium-ingress."
+      - "Controls support load, play, pause, restart, seek, and speed 0.25x, 0.5x, 1x, 2x, 4x."
+      - "Replay frames emit the same IntelligenceSnapshot shape as mock and live sources."
+      - "Replay state is usable as fallback when live or mesh stalls and a cached buffer exists."
+    frontend_copy: "REPLAY -- recorded data"
+  live:
+    priority: 3
+    backend_modes: ["ble", "wifi", "hybrid"]
+    requirements:
+      - "BLE and Wi-Fi adapters are optional dependencies and never block startup."
+      - "Unavailable adapters appear in /api/v1/config disabled_modes with explicit reasons."
+      - "No raw MAC address or stable device identifier is persisted or returned."
+      - "No frame for 30 seconds marks data stale; 60 seconds offers replay fallback."
+    frontend_copy: "LIVE -- real-time data"
+  mesh:
+    priority: 4
+    requirements:
+      - "Mesh adapter is optional and disabled by default without Meshtastic access."
+      - "Topology supports gateway/node health, battery, latency, link quality, and last packet timestamp."
+      - "Gateway unreachable returns disabled state or stale state without crashing the runtime."
+      - "Mesh topology can be mocked for the MVP while preserving the production payload shape."
+    frontend_copy: "MESH -- BLE/LoRa mesh"
+
+backend_capabilities:
+  contract_spine:
+    - "FastAPI app, CORS for localhost:3000, health/config/snapshot/zones/sensors/replay/mode/reset endpoints, and /ws/live."
+    - "Pydantic models matching the OpenAPI schema plus the required contract additions above."
+    - "Fixture payload generation for FE: snapshot, zone_update, alert_upsert, sensor_status, flow_update, replay_state, error."
+  intelligence:
+    - "Static venue geometry, zones, density, pressure_score, confidence, current_count, capacity, and 5-minute trend."
+    - "Flow vectors with direction, magnitude, and confidence."
+    - "Coverage gaps and sensor health for topology overlay."
+  alerts:
+    - "Alert kinds: congestion, queue_buildup, hallway_stall, sensor_offline."
+    - "Severity labels: info, warning, critical."
+    - "Critical alerts also emit toast-worthy stream events; acknowledgments are visual/local in MVP unless the FE requests persistence."
+  sources:
+    - "SensorSource protocol normalizes mock, replay, ble, wifi, mesh, and hybrid sources."
+    - "Mock and replay sources are deterministic and hardware-free."
+    - "Live adapters degrade to disabled reasons and explicit stale/offline stream states."
+
+non_goals:
+  - "Production auth, role-based access, or multi-tenant views."
+  - "Public density displays for real incidents."
+  - "Phone/radio/PA alert routing."
+  - "Historical compliance reports."
+  - "Predictive ML congestion modeling."
+  - "Mesh firmware implementation."
+  - "Cloud deployment."
+
+acceptance:
+  - id: A1
+    statement: "docker compose up exposes backend on http://localhost:8000 and frontend on http://localhost:3000 with no live hardware attached."
+    evidence_refs: ["deadzone-backend-scope.yaml backend_done_checks", "problem_spec.yaml constraints"]
+  - id: A2
+    statement: "GET /api/v1/snapshot returns StreamState, Venue, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, and SnapshotMetrics objects."
+    evidence_refs: ["deadzone-api-contract.yaml IntelligenceSnapshot"]
+  - id: A3
+    statement: "WS /ws/live emits snapshot, zone_update, alert_upsert, sensor_status, flow_update, replay_state, and error envelopes with monotonic sequence."
+    evidence_refs: ["deadzone-event-envelope.schema.json", "interaction_fsm.json global transitions"]
+  - id: A4
+    statement: "Mock mode starts by default, paints first useful frame within two seconds after page load, and produces a deterministic 90-second alert."
+    evidence_refs: ["task_graph.json task-1-land", "interaction_fsm.json screen-alerts-panel"]
+  - id: A5
+    statement: "Replay mode lists four scenarios and supports load, play, pause, restart, seek, and speed changes without changing payload shape."
+    evidence_refs: ["task_graph.json task-4-trigger-replay-scenario", "deadzone-backend-scope.yaml first_demo_scenarios"]
+  - id: A6
+    statement: "Mode provenance, freshness, disabled reasons, and stale/offline states are visible through API fields and stream events."
+    evidence_refs: ["constraint_bundle.yaml", "user_and_agent_research.md C2/D5"]
+  - id: A7
+    statement: "Topology exposes simulated and live-capable sensor health, raw privacy-safe event tail, coverage gaps, and mesh link summaries."
+    evidence_refs: ["ia_schema.json Sensor/Event", "components.md SensorDetailCard/RawEventTail/CoverageGapHatch"]
+  - id: A8
+    statement: "No backend response exposes raw MAC addresses, stable device identifiers, or attendee-level identity tracking."
+    evidence_refs: ["problem_spec.yaml constraints", "deadzone-backend-scope.yaml privacy_and_data_rules"]
+
+verification_matrix:
+  - requirement: "Contract shape"
+    command: "cd deadzone && pytest backend/tests/test_contract_shapes.py"
+    expected: "OpenAPI models, sample fixtures, and StreamEnvelope schema match the PRD contract."
+  - requirement: "Mock determinism"
+    command: "cd deadzone && pytest backend/tests/test_mock_determinism.py"
+    expected: "Same seed yields the same first 60 seconds and the 90-second alert fires once."
+  - requirement: "Replay behavior"
+    command: "cd deadzone && pytest backend/tests/test_replay_controls.py"
+    expected: "Four scenarios load and controls preserve sequence ordering."
+  - requirement: "WebSocket and stale/fallback behavior"
+    command: "cd deadzone && pytest backend/tests/test_websocket_stream.py backend/tests/test_mode_degradation.py"
+    expected: "Snapshot stream, incrementals, disconnect, stale, and fallback events satisfy FE state rules."
+  - requirement: "Docker demo path"
+    command: "cd deadzone && docker compose up --build"
+    expected: "Backend health is ok and frontend can render from snapshot plus stream without live hardware."

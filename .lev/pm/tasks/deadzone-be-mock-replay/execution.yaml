@@ -1,0 +1,252 @@
+topology: "cascade"
+runtime_profile: "codex-backend-sources"
+validation_chain:
+  - frame_complete_gate
+  - plan_alignment_gate
+  - convergence_gate
+  - slice_verticality_gate
+  - slice_alignment_gate
+  - feedback_loop_gate
+  - cold_start_context_gate
+  - adversarial_constraint_gate
+  - execution_ready_gate
+receipt_policy: "append_only"
+checkpoint_policy: "forward_only"
+budget:
+  max_iterations: 3
+  timeout: "5h"
+exit_conditions:
+  - "Mock determinism, replay controls, reset cascade, and scenario fixtures all pass tests."
+  - "Frontend can switch Mock to Replay and see mode/provenance updates with unchanged payload shapes."
+slices:
+  - id: "mock-01-deterministic-source"
+    title: "Build deterministic Mock source and DemoSession"
+    focus: "Default hardware-free data source that paints a credible dashboard and supports reset without page reload."
+    type: "AFK"
+    blocked_by:
+      - "deadzone-be-contract-spine:contract-01-runtime-contract"
+      - "deadzone-be-intelligence-alerts:intel-01-aggregate-snapshot"
+    behavior_coverage:
+      - "A4"
+      - "task-1-land"
+      - "task-7-reset-demo"
+    acceptance:
+      - "Same seed produces the same first 60 seconds of source frames and snapshots."
+      - "Mock mode starts by default when no explicit mode is configured."
+      - "DemoSession tracks started_at, elapsed_s, seed, scenario_id, and reset_count."
+      - "Reset returns the clock to t=0, clears alerts, and preserves the active mode badge."
+    what_to_build: "Implement a seeded Mock source, DemoSession runtime state, reset cascade, and mock sensor topology fixture that flows through the aggregate snapshot and stream contract."
+    why_this_slice: "The FE and judges need a reliable first-load demo before replay files or hardware adapters matter."
+    acceptance_criteria:
+      - "Skeleton can be replaced by first mock snapshot inside the FE's two-second target under local dev conditions."
+      - "Mock topology contains eight simulated nodes with mock provenance."
+      - "Mock source produces density, flow, sensor health, and alert-ready frames."
+    operator_context:
+      exact_inputs:
+        - "DEADZONE_MODE=mock"
+        - "DEADZONE_SEED default value from settings"
+        - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mock"
+      known_reds:
+        - "If no frontend exists yet, verify through backend tests and curl snapshots."
+      forbidden_moves:
+        - "Do not randomize without a seed."
+        - "Do not make reset call reload or restart the process."
+        - "Do not display mock data as real."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_mock_determinism.py backend/tests/test_demo_reset.py"
+      inputs:
+        - "mock seed"
+        - "DemoSession reset request"
+      outputs:
+        - "Passing deterministic source and reset tests"
+      pass_fail: "Pass when deterministic frames repeat and reset reinitializes DemoSession without process restart."
+    stages:
+      - id: "stage-mock-source"
+        action: "Implement seeded mock source frames for zones, sensors, flow, and alert conditions."
+        verify: "pytest backend/tests/test_mock_determinism.py -k source"
+      - id: "stage-demo-session"
+        action: "Implement DemoSession clock and reset cascade."
+        verify: "pytest backend/tests/test_demo_reset.py"
+      - id: "stage-topology-fixture"
+        action: "Provide eight simulated sensor nodes and mesh-like mock topology."
+        verify: "pytest backend/tests/test_mock_determinism.py -k topology"
+    design_refs:
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-1-land"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-7-reset-demo"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-demo-reset-cascade"
+    write_scope:
+      - "deadzone/backend/app/sources/mock.py"
+      - "deadzone/backend/app/runtime/**"
+      - "deadzone/backend/tests/test_mock_determinism.py"
+      - "deadzone/backend/tests/test_demo_reset.py"
+    constraints:
+      - "Mock is the default mode and has no external dependencies."
+      - "Mode provenance must say simulated data."
+    failure_modes:
+      - "Judge sees a blank or inert first screen."
+      - "Demo reset produces a WebSocket reconnect delay."
+      - "Mock state diverges from replay/live payload shape."
+    verify: "cd deadzone && pytest backend/tests/test_mock_determinism.py backend/tests/test_demo_reset.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "problem_spec.yaml deterministic demo path"
+      - "interaction_fsm.json mock_timed_alert and reset cascade"
+
+  - id: "mock-02-timed-alert"
+    title: "Fire the deterministic 90-second demo alert"
+    focus: "A guaranteed alert path that proves intelligence during the five-minute judging window."
+    type: "AFK"
+    blocked_by:
+      - "mock-01-deterministic-source"
+      - "deadzone-be-intelligence-alerts:intel-02-alerts-topology"
+    behavior_coverage:
+      - "A4"
+      - "task-5-acknowledge-alert"
+    acceptance:
+      - "A critical alert fires exactly once when mode=mock and elapsed_s reaches 90."
+      - "Alert targets the highest-density zone at the firing moment."
+      - "Reset clears the alert and re-arms the timer."
+    what_to_build: "Connect DemoSession timing to alert rules and WebSocket alert_upsert events so the alert rail never looks inert during the demo."
+    why_this_slice: "The UX research says an alert must fire during a judge visit; backend timing is the reliable source."
+    acceptance_criteria:
+      - "Alert message includes zone, severity, timestamp, and rule summary."
+      - "Critical alert emits alert_upsert and keeps snapshot active_alerts count consistent."
+      - "The alert does not fire repeatedly within one DemoSession."
+    operator_context:
+      exact_inputs:
+        - "Mock DemoSession elapsed_s"
+        - "Highest-density zone from aggregate state"
+      known_reds:
+        - "Local test clock may need fake timers to avoid waiting 90 seconds."
+      forbidden_moves:
+        - "Do not hard-code a zone that can disagree with the heatmap."
+        - "Do not fire the alert in Replay, Live, or Mesh unless a scenario frame carries it."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_mock_timed_alert.py"
+      inputs:
+        - "fake clock"
+        - "mock aggregate frames"
+      outputs:
+        - "Passing timed alert tests"
+      pass_fail: "Pass when the alert fires once at 90 seconds, targets the correct zone, and re-arms only after reset."
+    stages:
+      - id: "stage-clock-rule"
+        action: "Implement the mock timed alert trigger."
+        verify: "pytest backend/tests/test_mock_timed_alert.py -k fires_once"
+      - id: "stage-stream-event"
+        action: "Emit alert_upsert and update active alert metrics."
+        verify: "pytest backend/tests/test_mock_timed_alert.py -k envelope"
+      - id: "stage-reset-rearm"
+        action: "Re-arm the alert after DemoSession reset."
+        verify: "pytest backend/tests/test_mock_timed_alert.py -k reset"
+    design_refs:
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-alerts-panel"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#C3"
+    write_scope:
+      - "deadzone/backend/app/spatial/alerts.py"
+      - "deadzone/backend/app/runtime/**"
+      - "deadzone/backend/tests/test_mock_timed_alert.py"
+    constraints:
+      - "Timer is per DemoSession, not global process uptime."
+      - "Critical alert must be deterministic under fake clock."
+    failure_modes:
+      - "Alert never appears within five-minute demo."
+      - "Alert repeats and looks buggy."
+      - "Alert highlights a zone that is not currently high-density."
+    verify: "cd deadzone && pytest backend/tests/test_mock_timed_alert.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "user_and_agent_research.md C3"
+      - "interaction_fsm.json mock_90s_alert"
+
+  - id: "replay-01-scenarios-controls"
+    title: "Build Replay scenarios and playback controls"
+    focus: "Recorded scenario playback with scrubber, speed control, stable sequence ordering, and matching dashboard snapshots."
+    type: "AFK"
+    blocked_by:
+      - "deadzone-be-contract-spine:contract-02-control-surfaces"
+      - "mock-01-deterministic-source"
+    behavior_coverage:
+      - "A5"
+      - "task-4-trigger-replay-scenario"
+      - "task-2-switch-mode"
+    acceptance:
+      - "GET /api/v1/replay/scenarios lists convention-crowd, concert-exit-rush, hallway-stall, and stadium-ingress."
+      - "POST /api/v1/replay/control supports load, play, pause, restart, seek, and set_speed."
+      - "Speed values are restricted to 0.25, 0.5, 1, 2, and 4."
+      - "Replay emits snapshot and replay_state envelopes without sequence corruption."
+    what_to_build: "Implement replay scenario files, replay clock/control state, scenario reader, and stream integration that produces the same IntelligenceSnapshot shape as Mock."
+    why_this_slice: "Replay is both a demo mode and regression test source for FE, so it must be deterministic and controllable."
+    acceptance_criteria:
+      - "Scenario corrupt state returns recoverable ErrorResponse and keeps scenario picker usable."
+      - "Playback complete pauses at final frame and offers restart state through StreamState."
+      - "Switching away from replay stops playback and closes replay-specific stream state cleanly."
+    operator_context:
+      exact_inputs:
+        - "backend/data/replay/convention-crowd.jsonl"
+        - "backend/data/replay/concert-exit-rush.jsonl"
+        - "backend/data/replay/hallway-stall.jsonl"
+        - "backend/data/replay/stadium-ingress.jsonl"
+        - "ReplayControlRequest"
+      known_reds:
+        - "Scenario fixture format can be JSONL or structured JSON if tests and API docs agree."
+      forbidden_moves:
+        - "Do not make replay scenarios require real captured files for MVP."
+        - "Do not change ZoneAggregate or StreamEnvelope shape in replay mode."
+      hitl_protocol: "No HITL required."
+    verifier_contract:
+      command: "cd deadzone && pytest backend/tests/test_replay_controls.py backend/tests/test_replay_scenarios.py"
+      inputs:
+        - "four bundled replay scenario files"
+        - "Replay control requests"
+      outputs:
+        - "Passing replay scenario and control tests"
+      pass_fail: "Pass when all scenarios load, controls update StreamState, and sequence order remains monotonic."
+    stages:
+      - id: "stage-scenario-files"
+        action: "Create four bundled replay scenarios with deterministic event frames."
+        verify: "pytest backend/tests/test_replay_scenarios.py"
+      - id: "stage-replay-clock"
+        action: "Implement replay play/pause/restart/seek/speed clock."
+        verify: "pytest backend/tests/test_replay_controls.py -k clock"
+      - id: "stage-stream-integration"
+        action: "Emit replay snapshots and replay_state envelopes."
+        verify: "pytest backend/tests/test_replay_controls.py -k stream"
+    design_refs:
+      - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.replay"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-4-trigger-replay-scenario"
+      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-replay-picker"
+    write_scope:
+      - "deadzone/backend/app/sources/replay.py"
+      - "deadzone/backend/data/replay/**"
+      - "deadzone/backend/tests/test_replay_controls.py"
+      - "deadzone/backend/tests/test_replay_scenarios.py"
+    constraints:
+      - "Replay must be deterministic and local."
+      - "Replay scenario IDs must match the PRD exactly."
+    failure_modes:
+      - "Replay file missing causes blank drawer."
+      - "Scrubber speed corrupts sequence ordering."
+      - "Replay payload diverges from Mock payload."
+    verify: "cd deadzone && pytest backend/tests/test_replay_controls.py backend/tests/test_replay_scenarios.py"
+    gates:
+      - slice_verticality_gate
+      - feedback_loop_gate
+      - adversarial_constraint_gate
+    review_status: "execution_ready"
+    approval_source: "auto_alignment_evidence"
+    auto_alignment_evidence:
+      - "deadzone-backend-prd.yaml source_resolution.scenario count"
+      - "task_graph.json task-4-trigger-replay-scenario"

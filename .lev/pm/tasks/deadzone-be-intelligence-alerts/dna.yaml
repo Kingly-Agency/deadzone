@@ -1,0 +1,41 @@
+ontology: "deadzone.pm.task.v1"
+intent: "Build the aggregate intelligence layer that turns source frames into FE-ready zone density, movement, sensor health, topology, and alert objects."
+entity_kind: "backend_task"
+lifecycle_target: "execution_ready"
+acceptance:
+  - "IntelligenceSnapshot includes venue, zones, flow vectors, alerts, sensors, mesh links, and headline metrics."
+  - "Zone detail exposes current count, capacity, density, pressure, confidence, trend_5m, alerts, and flow direction."
+  - "Alert rules emit congestion, queue_buildup, hallway_stall, and sensor_offline with info, warning, and critical severities."
+  - "Topology includes sensor health, coverage gaps, link quality, latency, and privacy-safe diagnostics."
+local_refs:
+  - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ia_schema.json"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md"
+local_constraints:
+  - "Backend owns aggregation; frontend renders already-computed intelligence."
+  - "Never stream only raw RSSI packets to the UI."
+  - "Critical thresholds must be represented by data fields, not only colors."
+source_context:
+  mode: "plan"
+  summary: "The UX and PM sources converge on aggregate zone intelligence as the backend-owned FE boundary, with headline metrics, alerts, topology, and degradation state computed before rendering."
+  refs:
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#backend_capabilities"
+    - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml#intelligence_layer"
+    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#Data Display"
+  confidence: 0.93
+  inferred_without_design_file: true
+execution_slice_map: "execution.yaml:slices"
+grouping_reason: "Density, movement, topology, and alerts are one backend intelligence layer and must share source-frame semantics."
+proposal_metrics:
+  frame_completeness: 1.0
+  slice_readiness: 0.92
+  determinism: 1.0
+  verification_strength: 0.9
+  dna_awareness: 0.9
+  unresolved: 0
+approval_source: "auto_alignment_evidence"
+auto_alignment_evidence:
+  - "Existing backend scope explicitly owns spatial aggregate, alerts, and flow modules."
+  - "UX IA and components require aggregate Zone, Alert, Sensor, Event, and topology data."

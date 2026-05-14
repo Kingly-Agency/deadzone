@@ -1,0 +1,104 @@
+{
+  "jobs": [
+    {
+      "id": "job-1-glance",
+      "statement": "When I walk up to a hackathon booth, I want to immediately see a live, updating visualization, so I can assess technical capability in under 30 seconds.",
+      "type": "functional",
+      "priority": 1,
+      "triggers": ["page load", "booth arrival", "demo start"],
+      "user_types": ["spectator", "investigator", "operator"],
+      "evidence": "Convergent across all 5 personas in synthetic study; 'instant legibility' = primary wow factor",
+      "wow_moment": "Heatmap animating with movement vectors visible above the fold within 2 seconds"
+    },
+    {
+      "id": "job-2-trust",
+      "statement": "When I evaluate a crowd-monitoring tool, I want to distinguish real sensing from canned demos, so I can trust the system's production viability.",
+      "type": "emotional+functional",
+      "priority": 1,
+      "triggers": ["seeing too-polished animation", "checking data provenance", "skeptic mindset"],
+      "user_types": ["investigator", "operator"],
+      "evidence": "Raj + Tomasz both reward honest mode labeling; Raj calls it 'engineering maturity signal'",
+      "wow_moment": "Persistent mode badge + ability to toggle Mock -> Replay -> Live and see data actually change"
+    },
+    {
+      "id": "job-3-act",
+      "statement": "When I am responsible for a venue zone, I want zone-level occupancy numbers with trend direction, so I can make staffing or routing decisions without leaving the ops room.",
+      "type": "functional",
+      "priority": 1,
+      "triggers": ["zone alert", "scheduled check-in", "incident report"],
+      "user_types": ["operator"],
+      "evidence": "Maria's core ask ('how many people at Gate 3'); Tomasz agrees numbers beat gradients",
+      "wow_moment": "Click a zone -> instant numeric readout with 5-min trend sparkline"
+    },
+    {
+      "id": "job-4-rehearse",
+      "statement": "When I demo my project, I want a deterministic event sequence with reset-without-reload, so I can rehearse a pitch that always lands the same way and recover from interruption.",
+      "type": "functional",
+      "priority": 1,
+      "triggers": ["demo start", "judge arrives mid-demo", "rehearsal"],
+      "user_types": ["developer"],
+      "evidence": "Kenji's primary anxiety; Dana confirms timed alert 'proves system is intelligent'",
+      "wow_moment": "Keyboard 'R' resets timeline; 90-second alert fires reliably every run"
+    },
+    {
+      "id": "job-5-validate-coverage",
+      "statement": "When I deploy real sensors at a venue, I want to see coverage gaps and sensor health at a glance, so I can route around blind spots before they cause an incident.",
+      "type": "functional",
+      "priority": 2,
+      "triggers": ["sensor offline alert", "pre-event walkthrough", "post-incident review"],
+      "user_types": ["operator", "investigator"],
+      "evidence": "Maria 'where are my blind spots'; Tomasz 'sensor health is critical'",
+      "wow_moment": "Topology view shows uncovered area highlighted in pattern, not just absence"
+    },
+    {
+      "id": "job-6-investigate",
+      "statement": "When I am skeptical of a demo, I want to drill into raw event streams and topology, so I can verify the architecture is defensible.",
+      "type": "functional",
+      "priority": 2,
+      "triggers": ["suspicious of mock", "evaluating for grant", "comparing vendors"],
+      "user_types": ["investigator"],
+      "evidence": "Raj 'show me the API'; Kwame 'reference architecture deployable in an hour'",
+      "wow_moment": "Click sensor -> raw event tail (last 10 events with timestamps + RSSI)"
+    },
+    {
+      "id": "job-7-share-picture",
+      "statement": "When multiple teams coordinate a single event, I want a shared real-time picture, so we stop reconciling partial views verbally on radio.",
+      "type": "social+functional",
+      "priority": 3,
+      "triggers": ["multi-agency event", "incident escalation"],
+      "user_types": ["operator"],
+      "evidence": "Carla's 'common operating picture' need (Step 0b)",
+      "scope_note": "Post-MVP. Pitch mentions; MVP shows single-viewer dashboard only."
+    }
+  ],
+  "user_types": [
+    {
+      "id": "spectator",
+      "label": "Spectator (Glanceable)",
+      "personas": ["Dana (generalist judge)"],
+      "needs": "Instant comprehension, headline metrics, minimal controls, wow moment",
+      "default_mode": "Mock with auto-selected demo scenario"
+    },
+    {
+      "id": "investigator",
+      "label": "Investigator (Drill-Down)",
+      "personas": ["Raj (skeptic judge)", "Kwame (researcher)"],
+      "needs": "Mode switching, raw data access, sensor detail, API visibility",
+      "default_mode": "Switchable Mock <-> Replay <-> Live"
+    },
+    {
+      "id": "operator",
+      "label": "Operator (Action-Oriented)",
+      "personas": ["Maria (venue ops)", "Tomasz (public safety)", "Carla (crowd mgmt)"],
+      "needs": "Zone numbers, trend arrows, alert routing intent, degradation visibility",
+      "default_mode": "Live with Mesh fallback"
+    },
+    {
+      "id": "developer",
+      "label": "Developer (Demo-Resilient)",
+      "personas": ["Kenji (build team)"],
+      "needs": "Deterministic playback, reset-without-reload, graceful degradation",
+      "default_mode": "Mock with seeded RNG"
+    }
+  ]
+}

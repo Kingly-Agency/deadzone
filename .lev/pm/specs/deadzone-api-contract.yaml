@@ -1,0 +1,520 @@
+openapi: 3.1.0
+info:
+  title: DeadZone MVP API
+  version: 0.1.0
+  description: Local-first FastAPI contract for deterministic mock/replay venue intelligence.
+servers:
+  - url: http://localhost:8000
+    description: Local backend
+
+paths:
+  /health:
+    get:
+      summary: Health check for Docker and frontend boot.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Backend health.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v1/config:
+    get:
+      summary: Return available modes, active mode, venue metadata, and feature flags.
+      operationId: getConfig
+      responses:
+        "200":
+          description: App configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppConfig"
+
+  /api/v1/snapshot:
+    get:
+      summary: Return the latest aggregate intelligence snapshot.
+      operationId: getSnapshot
+      responses:
+        "200":
+          description: Latest snapshot for initial page load and fallback polling.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceSnapshot"
+
+  /api/v1/zones:
+    get:
+      summary: Return static venue zones and latest zone aggregates.
+      operationId: listZones
+      responses:
+        "200":
+          description: Zone aggregates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ZoneAggregate"
+
+  /api/v1/sensors:
+    get:
+      summary: Return known sensor nodes and current health.
+      operationId: listSensors
+      responses:
+        "200":
+          description: Sensor nodes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SensorNode"
+
+  /api/v1/replay/scenarios:
+    get:
+      summary: Return bundled deterministic replay scenarios.
+      operationId: listReplayScenarios
+      responses:
+        "200":
+          description: Replay scenarios.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReplayScenario"
+
+  /api/v1/replay/control:
+    post:
+      summary: Load, play, pause, restart, seek, or speed-control replay mode.
+      operationId: controlReplay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplayControlRequest"
+      responses:
+        "200":
+          description: Updated stream state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamState"
+        "409":
+          description: Requested replay action conflicts with current mode or scenario state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+x-websocket:
+  endpoint: /ws/live
+  protocol: json
+  client_connect_flow:
+    - "Fetch /api/v1/config."
+    - "Fetch /api/v1/snapshot for initial render."
+    - "Open ws://localhost:8000/ws/live."
+    - "Apply incoming StreamEnvelope messages by type and sequence."
+  envelope:
+    $ref: "#/components/schemas/StreamEnvelope"
+  message_types:
+    snapshot:
+      payload_schema: IntelligenceSnapshot
+      cadence: "1-2 Hz in MVP"
+      purpose: "Primary dashboard render payload."
+    zone_update:
+      payload_schema: ZoneAggregate
+      cadence: "Up to 5 Hz, aggregate only"
+      purpose: "Incremental density/pressure update."
+    alert_upsert:
+      payload_schema: Alert
+      cadence: "On alert state change"
+      purpose: "Create/update alert rail item."
+    sensor_status:
+      payload_schema: SensorNode
+      cadence: "On node health change or heartbeat"
+      purpose: "Update sensor overlay/topology."
+    flow_update:
+      payload_schema: FlowVector
+      cadence: "1-2 Hz in MVP"
+      purpose: "Update movement arrows."
+    replay_state:
+      payload_schema: StreamState
+      cadence: "On replay clock/control changes"
+      purpose: "Update transport and provenance."
+    error:
+      payload_schema: ErrorResponse
+      cadence: "On recoverable stream error"
+      purpose: "Show inline error while preserving last snapshot."
+
+components:
+  schemas:
+    Mode:
+      type: string
+      enum: [mock, replay, ble, wifi, mesh, hybrid]
+
+    HealthResponse:
+      type: object
+      required: [ok, service, version]
+      properties:
+        ok:
+          type: boolean
+        service:
+          type: string
+          const: deadzone-api
+        version:
+          type: string
+        mode:
+          $ref: "#/components/schemas/Mode"
+
+    ErrorResponse:
+      type: object
+      required: [code, message, recoverable]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        recoverable:
+          type: boolean
+        detail:
+          type: object
+          additionalProperties: true
+
+    AppConfig:
+      type: object
+      required: [active_mode, available_modes, venue, features, websocket_url]
+      properties:
+        active_mode:
+          $ref: "#/components/schemas/Mode"
+        available_modes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mode"
+        disabled_modes:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of mode to disabled reason.
+        venue:
+          $ref: "#/components/schemas/Venue"
+        features:
+          type: object
+          properties:
+            replay:
+              type: boolean
+            ble_adapter:
+              type: boolean
+            wifi_adapter:
+              type: boolean
+            mesh_adapter:
+              type: boolean
+        websocket_url:
+          type: string
+          example: "ws://localhost:8000/ws/live"
+
+    StreamEnvelope:
+      type: object
+      required: [type, sequence, timestamp, mode, payload]
+      properties:
+        type:
+          type: string
+          enum: [snapshot, zone_update, alert_upsert, sensor_status, flow_update, replay_state, error]
+        sequence:
+          type: integer
+          minimum: 0
+        timestamp:
+          type: string
+          format: date-time
+        mode:
+          $ref: "#/components/schemas/Mode"
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/IntelligenceSnapshot"
+            - $ref: "#/components/schemas/ZoneAggregate"
+            - $ref: "#/components/schemas/Alert"
+            - $ref: "#/components/schemas/SensorNode"
+            - $ref: "#/components/schemas/FlowVector"
+            - $ref: "#/components/schemas/StreamState"
+            - $ref: "#/components/schemas/ErrorResponse"
+
+    IntelligenceSnapshot:
+      type: object
+      required: [stream, venue, zones, flow_vectors, alerts, sensors, mesh_links, metrics]
+      properties:
+        stream:
+          $ref: "#/components/schemas/StreamState"
+        venue:
+          $ref: "#/components/schemas/Venue"
+        zones:
+          type: array
+          items:
+            $ref: "#/components/schemas/ZoneAggregate"
+        flow_vectors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlowVector"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Alert"
+        sensors:
+          type: array
+          items:
+            $ref: "#/components/schemas/SensorNode"
+        mesh_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeshLink"
+        metrics:
+          $ref: "#/components/schemas/SnapshotMetrics"
+
+    StreamState:
+      type: object
+      required: [mode, connected, sequence, source_label, freshness, clock]
+      properties:
+        mode:
+          $ref: "#/components/schemas/Mode"
+        connected:
+          type: boolean
+        sequence:
+          type: integer
+        source_label:
+          type: string
+          example: "Replay: convention-crowd"
+        freshness:
+          type: string
+          enum: [live, fresh, stale, offline]
+        clock:
+          type: object
+          required: [timestamp, replay_position_s, speed]
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            replay_position_s:
+              type: number
+            speed:
+              type: number
+
+    Venue:
+      type: object
+      required: [id, name, bounds, zones, map_version]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        map_version:
+          type: string
+        bounds:
+          type: object
+          required: [width, height]
+          properties:
+            width:
+              type: number
+            height:
+              type: number
+        zones:
+          type: array
+          items:
+            $ref: "#/components/schemas/Zone"
+
+    Zone:
+      type: object
+      required: [id, name, polygon]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        polygon:
+          type: array
+          items:
+            $ref: "#/components/schemas/Point"
+
+    Point:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+
+    ZoneAggregate:
+      type: object
+      required: [zone_id, density, pressure_score, trend, confidence, updated_at]
+      properties:
+        zone_id:
+          type: string
+        density:
+          type: number
+          minimum: 0
+          maximum: 1
+        pressure_score:
+          type: number
+          minimum: 0
+          maximum: 1
+        trend:
+          type: string
+          enum: [falling, stable, rising, spiking]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        estimated_devices:
+          type: integer
+          minimum: 0
+        updated_at:
+          type: string
+          format: date-time
+
+    FlowVector:
+      type: object
+      required: [id, from_zone, to_zone, direction_deg, magnitude, confidence]
+      properties:
+        id:
+          type: string
+        from_zone:
+          type: string
+        to_zone:
+          type: string
+        direction_deg:
+          type: number
+        magnitude:
+          type: number
+          minimum: 0
+          maximum: 1
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    Alert:
+      type: object
+      required: [id, kind, zone_id, severity, message, status, started_at]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [congestion, queue_buildup, hallway_stall, sensor_offline]
+        zone_id:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        message:
+          type: string
+        status:
+          type: string
+          enum: [active, resolved]
+        started_at:
+          type: string
+          format: date-time
+        duration_s:
+          type: number
+        supporting_sensor_ids:
+          type: array
+          items:
+            type: string
+
+    SensorNode:
+      type: object
+      required: [id, label, kind, status, zone_id, position, last_seen]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [mock, ble, wifi, mesh_gateway, mesh_node]
+        status:
+          type: string
+          enum: [online, degraded, offline, adapter_disabled]
+        zone_id:
+          type: string
+        position:
+          $ref: "#/components/schemas/Point"
+        battery:
+          type: number
+          minimum: 0
+          maximum: 1
+          nullable: true
+        latency_ms:
+          type: number
+          nullable: true
+        last_seen:
+          type: string
+          format: date-time
+
+    MeshLink:
+      type: object
+      required: [from_node, to_node, quality, latency_ms]
+      properties:
+        from_node:
+          type: string
+        to_node:
+          type: string
+        quality:
+          type: number
+          minimum: 0
+          maximum: 1
+        latency_ms:
+          type: number
+        last_packet_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SnapshotMetrics:
+      type: object
+      required: [estimated_devices, hot_zones, active_alerts, offline_sensors]
+      properties:
+        estimated_devices:
+          type: integer
+        hot_zones:
+          type: integer
+        active_alerts:
+          type: integer
+        offline_sensors:
+          type: integer
+
+    ReplayScenario:
+      type: object
+      required: [id, name, description, duration_s, seed, available_speeds]
+      properties:
+        id:
+          type: string
+          example: convention-crowd
+        name:
+          type: string
+        description:
+          type: string
+        duration_s:
+          type: number
+        seed:
+          type: string
+        available_speeds:
+          type: array
+          items:
+            type: number
+
+    ReplayControlRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [load, play, pause, restart, seek, set_speed]
+        scenario_id:
+          type: string
+        position_s:
+          type: number
+        speed:
+          type: number

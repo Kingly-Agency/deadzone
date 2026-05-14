@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "deadzone-event-envelope.schema.json",
+  "title": "DeadZone WebSocket StreamEnvelope",
+  "type": "object",
+  "required": ["type", "sequence", "timestamp", "mode", "payload"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "snapshot",
+        "zone_update",
+        "alert_upsert",
+        "sensor_status",
+        "flow_update",
+        "replay_state",
+        "error"
+      ]
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["mock", "replay", "ble", "wifi", "mesh", "hybrid"]
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "x-frontend-rules": [
+    "Ignore messages with sequence lower than the last applied sequence.",
+    "Preserve the last snapshot when an error or disconnect occurs.",
+    "Treat mode, freshness, and source_label as visible UI state."
+  ],
+  "x-backend-rules": [
+    "Emit aggregate payloads for dashboard consumption.",
+    "Use raw sensor observations only inside backend adapters and diagnostics.",
+    "Keep mock and replay payload shape identical to future live payloads."
+  ]
+}

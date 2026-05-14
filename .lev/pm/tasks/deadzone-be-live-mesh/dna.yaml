@@ -1,0 +1,42 @@
+ontology: "deadzone.pm.task.v1"
+intent: "Add real-data and mesh readiness through optional BLE, Wi-Fi, and Mesh adapter interfaces, disabled-mode responses, topology health, stale detection, and replay fallback behavior."
+entity_kind: "backend_task"
+lifecycle_target: "execution_ready"
+acceptance:
+  - "BLE, Wi-Fi, and Mesh adapters are optional and never block Mock/Replay startup."
+  - "/api/v1/config reports disabled live modes with precise human-readable reasons."
+  - "Live and Mesh stream stalls mark data stale after 30 seconds and offer Replay fallback after 60 seconds when a cache exists."
+  - "Mesh topology supports gateway/node health, battery, latency, link quality, and last packet timestamps from mockable data."
+local_refs:
+  - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
+  - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/domain_exploration.md"
+local_constraints:
+  - "Do not attempt production-grade RF capture in MVP."
+  - "Do not fail backend startup when live adapter dependencies or permissions are absent."
+  - "Do not hide Live/Mesh failures behind silent Mock fallback."
+source_context:
+  mode: "plan"
+  summary: "The PRD needs real-data credibility and mesh progression, but existing backend scope makes live adapters optional; UX requires explicit disabled, stale, and fallback states."
+  refs:
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.live"
+    - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
+    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
+    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#E5"
+  confidence: 0.9
+  inferred_without_design_file: true
+execution_slice_map: "execution.yaml:slices"
+grouping_reason: "Live and Mesh are the same credibility layer: optional real-data adapters, explicit failure semantics, and topology health."
+proposal_metrics:
+  frame_completeness: 1.0
+  slice_readiness: 0.9
+  determinism: 1.0
+  verification_strength: 0.9
+  dna_awareness: 0.9
+  unresolved: 0
+approval_source: "auto_alignment_evidence"
+auto_alignment_evidence:
+  - "Existing backend scope lists BLE, Wi-Fi, and Mesh as disabled-by-default optional adapters."
+  - "Richer UX run requires Live/Mesh explicit degradation and fallback behavior."
