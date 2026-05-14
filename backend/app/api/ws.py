@@ -21,6 +21,7 @@ async def ws_live(ws: WebSocket) -> None:
     engine = get_engine()
     try:
         while True:
+            await engine.ensure_live_ble_capture()
             for envelope in engine.envelopes():
                 await ws.send_text(envelope.model_dump_json())
             await asyncio.sleep(1.0)
@@ -34,6 +35,7 @@ async def ws_events(ws: WebSocket) -> None:
     engine = get_engine()
     try:
         while True:
+            await engine.ensure_live_ble_capture()
             await ws.send_json(engine.legacy_frame())
             await asyncio.sleep(1.0)
     except WebSocketDisconnect:

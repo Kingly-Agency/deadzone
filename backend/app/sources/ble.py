@@ -54,6 +54,7 @@ class BleCaptureManager:
         self.observations = 0
         self._scanner: Any | None = None
         self._stop_task: asyncio.Task[None] | None = None
+        self._last_error: str | None = None
 
     @property
     def disabled_reason(self) -> str | None:
@@ -76,6 +77,7 @@ class BleCaptureManager:
         self.started_at = datetime.now(timezone.utc)
         self.latest_observation_at = None
         self.observations = 0
+        self._last_error = None
 
         def on_advertisement(device: Any, advertisement_data: Any) -> None:
             raw_identifier = getattr(device, "address", None) or getattr(device, "name", "unknown")
@@ -103,7 +105,8 @@ class BleCaptureManager:
             self.started_at = None
             self.latest_observation_at = None
             self.observations = 0
-            return self.status(disabled_reason=f"BLE scanner failed to start: {exc}")
+            self._last_error = f"BLE scanner failed to start: {exc}"
+            return self.status(disabled_reason=self._last_error)
         if duration_s:
             self._stop_task = asyncio.create_task(self._stop_after(duration_s))
         return self.status()
@@ -124,7 +127,7 @@ class BleCaptureManager:
             trace_id=self.trace_id,
             observations=self.observations,
             backend="ble",
-            disabled_reason=disabled_reason,
+            disabled_reason=disabled_reason or self._last_error,
             started_at=self.started_at,
             latest_observation_at=self.latest_observation_at,
         )

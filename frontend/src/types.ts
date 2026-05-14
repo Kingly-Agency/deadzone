@@ -100,6 +100,9 @@ export interface StreamState {
   source_label: string;
   freshness: Freshness;
   clock: StreamClock;
+  playback_state?: "idle" | "playing" | "paused" | "ended" | null;
+  scenario_id?: string | null;
+  duration_s?: number | null;
 }
 
 export interface IntelligenceSnapshot {
@@ -118,7 +121,14 @@ export interface StreamEnvelope {
   sequence: number;
   timestamp: string;
   mode: Mode;
-  payload: IntelligenceSnapshot;
+  payload: IntelligenceSnapshot | ZoneAggregate | Alert | SensorNode | FlowVector | StreamState | ErrorResponse;
+}
+
+export interface ErrorResponse {
+  code: string;
+  message: string;
+  recoverable: boolean;
+  detail: Record<string, unknown>;
 }
 
 export interface Features {
@@ -152,6 +162,16 @@ export interface RawSensorEvent {
   rssi: number | null;
   zone_id: string;
   device_count: number;
+}
+
+export interface CaptureStatus {
+  active: boolean;
+  trace_id: string | null;
+  observations: number;
+  backend: "ble";
+  disabled_reason: string | null;
+  started_at: string | null;
+  latest_observation_at: string | null;
 }
 
 // ── Mode display tokens ─────────────────────────────────────────────────

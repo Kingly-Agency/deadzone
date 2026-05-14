@@ -72,6 +72,7 @@ class ZoneAggregate(BaseModel):
     pressure_score: float = Field(ge=0.0, le=1.0)
     trend: Trend
     confidence: float = Field(ge=0.0, le=1.0)
+    capacity: int = Field(default=0, ge=0)
     estimated_devices: int = Field(default=0, ge=0)
     updated_at: datetime
 

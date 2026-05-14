@@ -62,11 +62,13 @@ async def app_config(engine: DeadZoneEngine = Depends(get_engine)) -> AppConfig:
 
 @router.get("/api/v1/snapshot", response_model=IntelligenceSnapshot)
 async def snapshot(engine: DeadZoneEngine = Depends(get_engine)) -> IntelligenceSnapshot:
+    await engine.ensure_live_ble_capture()
     return engine.snapshot()
 
 
 @router.get("/api/v1/zones", response_model=list[ZoneAggregate])
 async def zones(engine: DeadZoneEngine = Depends(get_engine)) -> list[ZoneAggregate]:
+    await engine.ensure_live_ble_capture()
     return engine.snapshot().zones
 
 
@@ -80,6 +82,7 @@ async def zone_detail(zone_id: str, engine: DeadZoneEngine = Depends(get_engine)
 
 @router.get("/api/v1/sensors", response_model=list[SensorNode])
 async def sensors(engine: DeadZoneEngine = Depends(get_engine)) -> list[SensorNode]:
+    await engine.ensure_live_ble_capture()
     return engine.snapshot().sensors
 
 

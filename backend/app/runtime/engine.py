@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -37,6 +38,7 @@ class DeadZoneEngine:
         self.mock = MockFromTraceSource(self.store, settings.seed)
         self.active_mode: Mode = settings.mode
         self.sequence = 0
+        self._live_start_lock = asyncio.Lock()
 
     def next_sequence(self) -> int:
         self.sequence += 1
@@ -73,6 +75,18 @@ class DeadZoneEngine:
 
     def health(self) -> HealthResponse:
         return HealthResponse(ok=True, service="deadzone-api", version=self.settings.version, mode=self.active_mode)
+
+    async def ensure_live_ble_capture(self) -> CaptureStatus | None:
+        if self.active_mode != "ble":
+            return None
+        if self.capture.active:
+            return self.capture.status()
+        async with self._live_start_lock:
+            if self.active_mode != "ble":
+                return None
+            if self.capture.active:
+                return self.capture.status()
+            return await self.start_capture(trace_id=None, duration_s=None)
 
     async def start_capture(self, trace_id: str | None, duration_s: float | None) -> CaptureStatus:
         status = await self.capture.start(trace_id=trace_id, duration_s=duration_s)

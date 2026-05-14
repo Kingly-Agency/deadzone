@@ -5,6 +5,7 @@ import types
 
 from fastapi.testclient import TestClient
 
+from app import main as app_main
 from app.macos_bluetooth import BLUETOOTH_CHILD_ENV
 from app.runtime.engine import DeadZoneEngine
 from app.main import app
@@ -74,3 +75,43 @@ async def test_capture_start_failure_preserves_current_mode(monkeypatch, tmp_pat
     assert status.disabled_reason == "BLE scanner failed to start: bluetooth denied"
     assert engine.active_mode == "mock"
     assert engine.capture.trace_id is None
+
+
+def test_ble_mode_auto_starts_live_capture_for_streaming(monkeypatch, tmp_path):
+    class FakeScanner:
+        def __init__(self, detection_callback):
+            self.detection_callback = detection_callback
+            self.started = False
+
+        async def start(self):
+            self.started = True
+            self.detection_callback(
+                types.SimpleNamespace(address="AA:BB:CC:DD:EE:01"),
+                types.SimpleNamespace(rssi=-54),
+            )
+
+        async def stop(self):
+            self.started = False
+
+    monkeypatch.setitem(sys.modules, "bleak", types.SimpleNamespace(BleakScanner=FakeScanner))
+    monkeypatch.setenv(BLUETOOTH_CHILD_ENV, "1")
+    engine = DeadZoneEngine(
+        Settings(mode="ble", seed=42, data_dir=tmp_path, capture_salt="test-salt")
+    )
+
+    monkeypatch.setattr(app_main, "engine", engine)
+    client = TestClient(app)
+    response = client.get("/api/v1/snapshot")
+    snapshot = response.json()
+    status = engine.capture.status()
+
+    assert response.status_code == 200
+    assert status is not None
+    assert status.active is True
+    assert status.observations == 1
+    assert snapshot["stream"]["mode"] == "ble"
+    assert snapshot["stream"]["connected"] is True
+    assert snapshot["stream"]["freshness"] == "live"
+    assert snapshot["metrics"]["estimated_devices"] == 1
+
+    client.post("/api/v1/capture/stop")

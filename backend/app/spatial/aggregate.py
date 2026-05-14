@@ -45,6 +45,7 @@ def aggregate_zones(observations: list[BleObservation], now: datetime | None = N
                 pressure_score=round(pressure, 3),
                 trend=trend,
                 confidence=0.9 if count else 0.35,
+                capacity=capacity,
                 estimated_devices=count,
                 updated_at=current_time,
             )

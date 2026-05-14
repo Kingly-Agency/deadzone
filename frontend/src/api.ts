@@ -20,6 +20,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 
 import type {
   AppConfig,
+  CaptureStatus,
   IntelligenceSnapshot,
   RawSensorEvent,
   ReplayScenario,
@@ -39,4 +40,7 @@ export const api = {
   replayControl:   (body: Record<string, unknown>)         => post<StreamState>("/api/v1/replay/control", body),
   switchMode:      (mode: string)                          => post<StreamState>("/api/v1/mode", { mode }),
   reset:           ()                                      => post<IntelligenceSnapshot>("/api/v1/demo/reset"),
+  captureStatus:   ()                                      => get<CaptureStatus>("/api/v1/capture/status"),
+  startCapture:    ()                                      => post<CaptureStatus>("/api/v1/capture/start", {}),
+  stopCapture:     ()                                      => post<CaptureStatus>("/api/v1/capture/stop"),
 };

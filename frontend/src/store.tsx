@@ -11,10 +11,16 @@ import {
 } from "react";
 import { api } from "./api";
 import type {
+  Alert,
   AppConfig,
+  ErrorResponse,
+  FlowVector,
   IntelligenceSnapshot,
-  StreamEnvelope,
   Mode,
+  SensorNode,
+  StreamEnvelope,
+  StreamState,
+  ZoneAggregate,
 } from "./types";
 
 // ── Store shape ─────────────────────────────────────────────────────────
@@ -103,14 +109,73 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Sequence-aware: ignore out-of-order messages
         if (env.sequence <= seqRef.current) return;
         seqRef.current = env.sequence;
-
-        if (env.type === "snapshot" && env.payload) {
-          setSnapshot(env.payload);
-        }
+        applyEnvelope(env);
       } catch {
         // skip malformed
       }
     };
+  }
+
+  function applyEnvelope(env: StreamEnvelope) {
+    switch (env.type) {
+      case "snapshot":
+        setSnapshot(env.payload as IntelligenceSnapshot);
+        setError(null);
+        return;
+      case "zone_update":
+        setSnapshot((current) =>
+          current
+            ? {
+                ...touchStream(current, env),
+                zones: upsertBy(current.zones, env.payload as ZoneAggregate, "zone_id"),
+              }
+            : current,
+        );
+        return;
+      case "sensor_status":
+        setSnapshot((current) =>
+          current
+            ? {
+                ...touchStream(current, env),
+                sensors: upsertBy(current.sensors, env.payload as SensorNode, "id"),
+              }
+            : current,
+        );
+        return;
+      case "flow_update":
+        setSnapshot((current) =>
+          current
+            ? {
+                ...touchStream(current, env),
+                flow_vectors: upsertBy(current.flow_vectors, env.payload as FlowVector, "id"),
+              }
+            : current,
+        );
+        return;
+      case "alert_upsert":
+        setSnapshot((current) =>
+          current
+            ? {
+                ...touchStream(current, env),
+                alerts: upsertBy(current.alerts, env.payload as Alert, "id"),
+              }
+            : current,
+        );
+        return;
+      case "replay_state":
+        setSnapshot((current) =>
+          current
+            ? {
+                ...current,
+                stream: env.payload as StreamState,
+              }
+            : current,
+        );
+        return;
+      case "error":
+        setError((env.payload as ErrorResponse).message);
+        return;
+    }
   }
 
   const switchMode = useCallback(async (mode: Mode) => {
@@ -153,4 +218,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   return <StoreCtx.Provider value={store}>{children}</StoreCtx.Provider>;
+}
+
+function touchStream(snapshot: IntelligenceSnapshot, env: StreamEnvelope): IntelligenceSnapshot {
+  return {
+    ...snapshot,
+    stream: {
+      ...snapshot.stream,
+      mode: env.mode,
+      sequence: env.sequence,
+      clock: {
+        ...snapshot.stream.clock,
+        timestamp: env.timestamp,
+      },
+    },
+  };
+}
+
+function upsertBy<T extends Record<K, string>, K extends keyof T>(
+  items: T[],
+  next: T,
+  key: K,
+): T[] {
+  const index = items.findIndex((item) => item[key] === next[key]);
+  if (index === -1) return [...items, next];
+  const copy = items.slice();
+  copy[index] = next;
+  return copy;
 }

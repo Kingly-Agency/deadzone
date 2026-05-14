@@ -141,6 +141,62 @@ Manage the transition from PRD to executable work packages. Preserve why decisio
 | T+7 | UX pipeline rerun: full 7-step at `.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/` (wireframes, constraint_bundle, gate=proceed) |
 | T+8 | Repo init + private push to https://github.com/Kingly-Agency/deadzone (commit c4152c3) |
 | T+9 | README + backend/ (FastAPI /ws/events placeholder) + frontend/ (Vite+React shell) + docker-compose.yml committed and pushed (commit cc68011) |
+| T+10 | App smoke-tested: 10/10 backend tests pass, FE typechecks + vite-builds, BE/FE wire-compatible; primary gap = no demo path without bleak+trace |
+| T+11 | Mesh scoping discussion: real Meshtastic needs LoRa boards; Option B (WiFi-faked mesh) chosen for 2-laptop test in this session |
+| T+12 | /subagent-driven-development invoked: 14 tasks created, batches 0/1/2/3 dispatched with subagents under spec-then-quality review gates |
+| T+13 | Batch 0 (spec+task-DNA+models+transport): 1 round of fixes (`__all__` exports, MeshLink field alignment), then APPROVED; transport critical buffer-duplication bugs caught + fixed |
+| T+14 | Batch 1 (gateway+node): APPROVED_WITH_NOTES (link window 2s vs spec 1s/5s — tunable; non-blocking) |
+| T+15 | Batch 2 (satellite-app+tests+README): APPROVED; 29/29 mesh tests + 13/13 existing tests = 42 green |
+| T+16 | Batch 3 (CLI __main__.py): help-check ok; `python -m app.mesh gateway` + `python -m app.mesh node --gateway URL --node-id NAME` work |
+
+### ⚡ CHECKPOINT 3 — WiFi-faked mesh ready to commit (uncommitted on disk)
+
+**Current State:** All 11 mesh artifacts on disk, 42/42 tests green, zero conflict with parallel BE-agent work (no edits to main.py, engine.py, routes.py, ws.py, domain/models.py, sources/mesh.py, or pyproject.toml). Not yet committed — awaiting user go-ahead since `/subagent-driven-development` session is paused on a stack-decision question that the user resolved ("Python BE is fine, was just checking we hadn't slipped a Node BE in").
+
+**Context:** Real Meshtastic mesh requires LoRa hardware (ESP32 boards, ~$30-50 each + firmware day). Not viable before demo. **Option B (WiFi-faked mesh)** = standalone FastAPI satellite on port 8001; N node processes POST 1Hz zone-aggregate packets to gateway over plain HTTP. Aggregate-only across wire (no raw BLE MAC, no beacon_hash, no RSSI — privacy salt stays local per node). Honest demo claim: "Mesh transport simulated via WiFi; sensing is real BLE on two independent nodes."
+
+**Files Created (all uncommitted, all under `backend/app/mesh/` or `.lev/`):**
+- `backend/app/mesh/__init__.py` — package re-exports
+- `backend/app/mesh/models.py` — Pydantic v2 wire types (AggregatePacket with `schema` alias, NodeState, MergedZone, MeshLink, MeshSnapshot, GatewayHealth, AggregateAccepted, ZoneAggregate, Position)
+- `backend/app/mesh/transport.py` — stdlib `urllib`-based async HTTP client with tri-state SendResult (ok/drop/retry), bounded retry buffer, seq stamping
+- `backend/app/mesh/gateway.py` — in-memory MeshGateway with SUM/MAX/urgency-tiebreak/MIN merge, stale-after-3s, offline-after-10s, mesh_link inference within 2s window
+- `backend/app/mesh/node.py` — MeshNode tick loop + Scanner protocol + deterministic sinusoidal MockNodeScanner
+- `backend/app/mesh/app.py` — FastAPI factory exposing GET /mesh/healthz, POST /mesh/aggregate, GET /mesh/state, GET /mesh/nodes (CORS for localhost:3000)
+- `backend/app/mesh/__main__.py` — argparse CLI: `python -m app.mesh gateway --port 8001` / `python -m app.mesh node --gateway URL --node-id NAME`
+- `backend/app/mesh/README.md` — 213-line runbook for 2-laptop test
+- `backend/tests/test_mesh.py` — 29 tests across 7 classes (wire protocol, gateway merge, stale/offline lifecycle, privacy invariants, transport buffering, mock determinism, HTTP integration)
+- `.lev/pm/specs/deadzone-mesh-wifi.yaml` — feature spec (source of truth for merge rules, packet contract, privacy model, failure modes, done_criteria, out_of_scope)
+- `.lev/pm/tasks/deadzone-be-mesh-wifi/{dna.yaml,execution.yaml}` — task DNA
+
+**Critical bugs caught during review (would have shipped if not caught):**
+1. Transport buffer duplicated packets on 5xx (each `_send` failure both returned False AND re-appended without popleft).
+2. 4xx response during buffer replay permanently blocked the buffer.
+3. Seq counter drift between fresh-packet attempts and buffer replays.
+All fixed via tri-state SendResult rewrite where `post()` and `_drain_buffer` own the buffer lifecycle; `_send` is pure I/O classification.
+
+**Outstanding non-blocking items:**
+- Mesh link window: code uses single 2s window; spec says 1s creation + 5s expiry. Tunable; pragmatic 2s for WiFi jitter. Either update spec or split into two constants in follow-up.
+- MockNodeScanner never emits `"spiking"` trend — cosmetic.
+- A separate BE agent has been modifying `app/main.py`, `app/api/*`, `app/runtime/engine.py`, `app/sources/*`, `pyproject.toml` (added bleak to main deps, added `deadzone-backend`/`deadzone-permissions`/`deadzone-scan` console scripts). FE agent also modified `frontend/src/App.tsx`, `HeatmapDashboard.tsx`, `index.html`, `styles.css` to add Bluetooth capture controls + Google Fonts. Mesh remained zero-conflict.
+
+**Two-laptop test runbook (ready now):**
+```bash
+# laptop A (gateway):
+cd backend && python -m app.mesh gateway --port 8001
+# laptop A (own node):
+python -m app.mesh node --gateway http://localhost:8001 --node-id laptop-A
+# laptop B:
+python -m app.mesh node --gateway http://<A-lan-ip>:8001 --node-id laptop-B
+# verify:
+curl http://<A-lan-ip>:8001/mesh/state | jq
+```
+
+**Next Steps:**
+1. Final whole-slice review pass (one reviewer over all 11 files at once).
+2. Git commit + push to https://github.com/Kingly-Agency/deadzone (will be commit ~4 on main).
+3. Decide whether to reconcile the link-window deviation in the spec or the code (follow-up task).
+4. Optional: wire real BLE Scanner via DI from the main backend's `app/sources/ble.py` (BE-agent territory; mesh is ready to accept it via the Scanner protocol).
+5. Optional: add `/mesh/state` proxy in main BE's `/api/v1/snapshot` so FE only needs one URL (BE-agent territory).
 
 ### ⚡ CHECKPOINT 2 — Scaffolds shipped, repo live
 
