@@ -138,6 +138,34 @@ Manage the transition from PRD to executable work packages. Preserve why decisio
 | T+4 | UX artifacts created |
 | T+5 | API/backend/FE/task artifacts created |
 | T+6 | Syntax validation completed |
+| T+7 | UX pipeline rerun: full 7-step at `.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/` (wireframes, constraint_bundle, gate=proceed) |
+| T+8 | Repo init + private push to https://github.com/Kingly-Agency/deadzone (commit c4152c3) |
+| T+9 | README + backend/ (FastAPI /ws/events placeholder) + frontend/ (Vite+React shell) + docker-compose.yml committed and pushed (commit cc68011) |
+
+### ⚡ CHECKPOINT 2 — Scaffolds shipped, repo live
+
+**Current State:** Private repo `Kingly-Agency/deadzone` is live on `main` (origin up-to-date). Two commits: `c4152c3` (initial `.lev/` PRD + UX artifacts) and `cc68011` (README + backend/ + frontend/ + docker-compose). Backend ships a 1Hz placeholder WebSocket frame stream; frontend renders a persistent ProvenanceBadge + HeadlineMetricsBar + density zone bars + non-empty alerts zero-state + viridis legend — exactly the LC-1..LC-4 + LC-6 constraints from the latest UX run.
+
+**Context:** UX pipeline rerun produced wireframes-included artifacts. User moved both into `deadzone/.lev/` and created the GH repo. Two consecutive `/ux` runs now coexist in `.lev/ux/`: `20260514-101228-deadzone-mvp-prd` (initial) and `20260514-101706-deadzone-mvp-crowd-intel` (full 7-step with wireframes).
+
+**Files Loaded:** scaffold templates from session memory; existing `.lev/pm/specs/` for partner brief reference.
+**Files Modified/Created:**
+- `README.md` (created)
+- `backend/pyproject.toml`, `backend/app/__init__.py`, `backend/app/main.py`, `backend/Dockerfile`, `backend/README.md` (created)
+- `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`, `frontend/index.html`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/components/HeatmapDashboard.tsx`, `frontend/src/styles.css`, `frontend/Dockerfile`, `frontend/README.md` (created)
+- `docker-compose.yml` (created)
+- `.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/*` (moved in from incubator root)
+- `.lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md`, `20260514-fe-prd-deadzone-ux-synthesis-session-1.md` (moved in from incubator root)
+
+**Understanding:** The repo now matches the BE/FE boundary specified in `.lev/pm/specs/deadzone-api-contract.yaml` and `.lev/pm/specs/deadzone-frontend-partner-brief.yaml`. Backend placeholder is intentionally minimal — real mock-replay generator lands in `.lev/pm/tasks/deadzone-be-mock-replay/`. Frontend dashboard renders the constraint-bundle UX intent (mode badge, headline metrics, density bars, non-empty alerts state, viridis ramp) but does NOT yet integrate Leaflet floorplan + Heatmap.js — that lands when the venue floorplan asset arrives.
+
+**Progress:** Ship-ready scaffold. `docker compose up` should produce a working dashboard within a minute on a clean clone (backend builds python:3.11-slim image, frontend builds node:20-alpine). Untested end-to-end in CI.
+
+**Next Steps:**
+1. Verify `docker compose up` actually boots end-to-end on a clean checkout (build, connect, render first frame).
+2. Pick up `.lev/pm/tasks/deadzone-be-mock-replay/` — replace the 1Hz placeholder with the deterministic generator + 90s alert event.
+3. Decide floorplan source for the venue (PNG/SVG path); then wire Leaflet + Heatmap.js into `HeatmapDashboard.tsx`.
+4. Convert the 4 `.lev/pm/tasks/deadzone-be-*` items into GitHub Issues so the repo Issues tab tracks them.
 
 ## Decisions Log
 

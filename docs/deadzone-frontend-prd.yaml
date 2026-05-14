@@ -389,45 +389,80 @@ information_architecture:
       trigger: "R key or reset click"
 
 modes:
-  - id: mock
-    label: "MOCK"
-    provenance_label: "Simulated data, seeded RNG"
-    badge_color_token: "mode_mock"
-    default: true
-    behavior:
-      - "Starts automatically on first load."
-      - "Uses deterministic sequence."
-      - "Fires one alert at 90s from demo session start."
-      - "Reset is non-destructive and uses a toast."
-  - id: replay
-    label: "REPLAY"
-    provenance_label: "Recorded scenario playback"
-    badge_color_token: "mode_replay"
-    default: false
-    behavior:
-      - "Opens replay drawer when selected."
-      - "Supports scenario selection, play, pause, restart, seek, and speed."
-      - "Reset is non-destructive and uses a toast."
-  - id: live
-    label: "LIVE"
-    provenance_label: "Real-time BLE/Wi-Fi sensing"
-    badge_color_token: "mode_live"
-    default: false
-    behavior:
-      - "Visible in mode dropdown with availability indicator."
-      - "Disabled with reason if backend says unavailable."
-      - "Stale/offline failures are explicit and offer retry or fallback."
-      - "Reset requires confirmation modal."
-  - id: mesh
-    label: "MESH"
-    provenance_label: "Distributed mesh sensors"
-    badge_color_token: "mode_mesh"
-    default: false
-    behavior:
-      - "Visible in mode dropdown with availability indicator."
-      - "Disabled with reason if gateway unavailable."
-      - "Used as proof of the no-Wi-Fi story in pitch and topology."
-      - "Reset requires confirmation modal."
+  contract_mode_enum: ["mock", "replay", "ble", "wifi", "mesh", "hybrid"]
+  ui_grouping_rule: >
+    The backend contract has no wire value named live. "Live Sensors" is a UI
+    group label for the contract modes ble, wifi, and hybrid. FE code must send
+    and compare only the concrete contract mode values.
+  options:
+    - id: mock
+      label: "MOCK"
+      provenance_label: "Simulated data, seeded RNG"
+      badge_color_token: "mode_mock"
+      default: true
+      reset_behavior: toast
+      behavior:
+        - "Starts automatically on first load."
+        - "Uses deterministic sequence."
+        - "Fires one alert at 90s from demo session start."
+        - "Reset is non-destructive and uses a toast."
+    - id: replay
+      label: "REPLAY"
+      provenance_label: "Recorded scenario playback"
+      badge_color_token: "mode_replay"
+      default: false
+      reset_behavior: toast
+      behavior:
+        - "Opens replay drawer when selected."
+        - "Supports scenario selection, play, pause, restart, seek, and speed."
+        - "Reset is non-destructive and uses a toast."
+    - id: ble
+      label: "BLE"
+      ui_group: "Live Sensors"
+      provenance_label: "Real-time BLE sensing"
+      badge_color_token: "mode_ble"
+      default: false
+      reset_behavior: modal
+      behavior:
+        - "Visible in mode dropdown with availability indicator."
+        - "Disabled with reason if backend says unavailable."
+        - "Stale/offline failures are explicit and offer retry or fallback."
+        - "Reset requires confirmation modal."
+    - id: wifi
+      label: "WI-FI"
+      ui_group: "Live Sensors"
+      provenance_label: "Real-time Wi-Fi sensing"
+      badge_color_token: "mode_wifi"
+      default: false
+      reset_behavior: modal
+      behavior:
+        - "Visible in mode dropdown with availability indicator."
+        - "Disabled with reason if backend says unavailable."
+        - "Stale/offline failures are explicit and offer retry or fallback."
+        - "Reset requires confirmation modal."
+    - id: mesh
+      label: "MESH"
+      provenance_label: "Distributed mesh sensors"
+      badge_color_token: "mode_mesh"
+      default: false
+      reset_behavior: modal
+      behavior:
+        - "Visible in mode dropdown with availability indicator."
+        - "Disabled with reason if gateway unavailable."
+        - "Used as proof of the no-Wi-Fi story in pitch and topology."
+        - "Reset requires confirmation modal."
+    - id: hybrid
+      label: "HYBRID"
+      ui_group: "Live Sensors"
+      provenance_label: "Combined live sensing"
+      badge_color_token: "mode_hybrid"
+      default: false
+      reset_behavior: modal
+      behavior:
+        - "Visible only if backend advertises hybrid in available_modes."
+        - "Uses backend-composed BLE/Wi-Fi/Mesh aggregate stream."
+        - "Disabled with reason if backend says unavailable."
+        - "Reset requires confirmation modal."
 
 data_contract:
   startup_sequence:
@@ -484,9 +519,9 @@ data_contract:
     - "On disconnect, preserve last snapshot and mark stale."
     - "Never show a blank map unless both config and snapshot failed."
     - "Show mode, source label, freshness, and connection status in persistent chrome."
-    - "Treat unavailable live modes as disabled options with reasons, not hidden options."
+    - "Treat unavailable ble, wifi, mesh, and hybrid modes as disabled options with reasons, not hidden options."
   fixtures_if_backend_lags:
-    - "AppConfig with active_mode=mock, available_modes=[mock,replay], disabled_modes for live and mesh, venue metadata, feature flags, and websocket_url."
+    - "AppConfig with active_mode=mock, available_modes=[mock,replay], disabled_modes for ble, wifi, mesh, and hybrid, venue metadata, feature flags, and websocket_url."
     - "IntelligenceSnapshot with at least 4 zones, 4 sensors, 2 flow vectors, 2 active alerts, 1 mesh link, and metrics."
     - "StreamEnvelope snapshot message."
     - "StreamEnvelope zone_update message."
@@ -572,7 +607,7 @@ functional_requirements:
     acceptance:
       - "R key is ignored when text input is focused."
       - "Mock/Replay reset uses toast and auto-confirms or confirms lightly."
-      - "Live/Mesh reset uses focus-trapped confirmation modal."
+      - "BLE/Wi-Fi/Mesh/Hybrid reset uses focus-trapped confirmation modal."
       - "Reset clears alerts, resets timeline to t=0, re-arms the 90s alert, and preserves current mode label."
     sources: ["ux-b global transition gt-reset-key", "ux-b wireframes screen 7"]
   - id: FE-P1-01
@@ -590,7 +625,7 @@ functional_requirements:
     requirement: "Provide topology toggle that swaps from heatmap emphasis to sensor topology, including nodes, health, link quality, and coverage gaps."
     acceptance:
       - "Mock mode can show simulated nodes."
-      - "Live mode with zero sensors shows explicit no-sensors state and actions."
+      - "BLE/Wi-Fi/Hybrid mode with zero sensors shows explicit no-sensors state and actions."
       - "Coverage gaps use diagonal hatching."
       - "Topology overlay can close with Escape."
     sources: ["ux-a Sensor Mesh", "ux-b wireframes screen 3"]
@@ -629,7 +664,7 @@ screens_and_states:
     key_transitions:
       - "app_mount -> connecting: render skeleton and Mock mode badge within 200ms."
       - "first_frame_received -> populated: crossfade skeleton to heatmap, render metrics and legend."
-      - "no_frame_30s in Live/Mesh -> stale: preserve last snapshot and show stale badge."
+      - "no_frame_30s in BLE/Wi-Fi/Mesh/Hybrid -> stale: preserve last snapshot and show stale badge."
       - "mode_switch -> loading: crossfade out, update badge, show skeleton for new mode."
       - "retry_click -> connecting: clear error and retry stream."
     required_feedback: ["connection badge", "last updated clock", "skeleton map", "inline error banner", "stale indicator"]
@@ -673,10 +708,10 @@ screens_and_states:
       - "save_click -> saving: persist local preferences if implemented."
       - "close_click_or_esc -> closed: close and revert unsaved changes."
   demo_reset:
-    states: ["idle", "confirming_mock_replay", "confirming_live_mesh", "resetting", "complete"]
+    states: ["idle", "confirming_mock_replay", "confirming_adapter_mode", "resetting", "complete"]
     key_transitions:
       - "R_key_or_reset_click in Mock/Replay -> confirming_mock_replay."
-      - "R_key_or_reset_click in Live/Mesh -> confirming_live_mesh."
+      - "R_key_or_reset_click in BLE/Wi-Fi/Mesh/Hybrid -> confirming_adapter_mode."
       - "reset_complete -> complete: fade heatmap to t=0, clear alerts, rearm 90s alert."
 
 component_requirements:
@@ -770,7 +805,9 @@ visual_and_interaction_design:
     density_ramp: "viridis or plasma, perceptually uniform"
     mode_mock: "#3B82F6"
     mode_replay: "#F59E0B"
-    mode_live: "#10B981"
+    mode_ble: "#10B981"
+    mode_wifi: "#14B8A6"
+    mode_hybrid: "#22C55E"
     mode_mesh: "#8B5CF6"
     severity_info: "#3B82F6"
     severity_warn: "#F59E0B"
@@ -786,7 +823,7 @@ visual_and_interaction_design:
     skeleton_render: "under 200ms"
     first_meaningful_paint: "target under 2000ms after app mount when data is available"
     websocket_timeout_to_error: "5000ms"
-    stale_threshold: "30s no frames in Live/Mesh"
+    stale_threshold: "30s no frames in BLE/Wi-Fi/Mesh/Hybrid"
     fallback_offer_threshold: "60s no frames"
     mode_crossfade: "300ms"
     drawer_open: "250ms"
@@ -833,7 +870,7 @@ anti_patterns:
     mitigation: "R key and ResetButton update app state without reload."
   - id: AP-07
     pattern: "Wi-Fi-dependent dead-Wi-Fi-zone story left unexplained"
-    mitigation: "UI labels Live as optional and Mesh as distributed fallback; pitch must address this explicitly."
+    mitigation: "UI labels BLE/Wi-Fi/Hybrid as optional live sensing and Mesh as distributed fallback; pitch must address this explicitly."
   - id: AP-08
     pattern: "Topology front-and-center for all users"
     mitigation: "Topology is toggle overlay, default off."
@@ -868,7 +905,7 @@ implementation_order:
     unlocks: ["Operator path"]
   - order: 9
     item: "Build ModeDropdown with availability and crossfade mode switching."
-    unlocks: ["Mock/Replay/Live/Mesh story"]
+    unlocks: ["Mock/Replay/Live Sensors/Mesh story"]
   - order: 10
     item: "Build topology overlay, sensor detail, and raw event tail."
     unlocks: ["Investigator trust path"]
@@ -901,12 +938,12 @@ acceptance_matrix:
     - "Replay mode keeps provenance visible."
   modes:
     - "Mock, Replay, BLE, Wi-Fi, Mesh, and Hybrid display with correct labels and availability."
-    - "Unavailable Live/Mesh modes show reason and remain discoverable."
+    - "Unavailable BLE/Wi-Fi/Mesh/Hybrid modes show reason and remain discoverable."
     - "Mode switch crossfades and does not page reload."
   reset:
     - "R key and reset button work outside text inputs."
     - "Mock/Replay reset clears alerts and re-arms 90s alert without reload."
-    - "Live/Mesh reset requires confirmation."
+    - "BLE/Wi-Fi/Mesh/Hybrid reset requires confirmation."
   topology:
     - "Sensor nodes, status, latency, and link quality can render from snapshot."
     - "Offline sensor and stale stream states are distinct."
@@ -928,7 +965,7 @@ open_questions:
     impact: "Provenance label, investigator trust, and pitch wording."
     source: "ux-b summary open questions"
   - id: OQ-03
-    question: "Should Live and Mesh controls be enabled in the hackathon demo or shown disabled with reasons?"
+    question: "Should BLE, Wi-Fi, Mesh, and Hybrid controls be enabled in the hackathon demo or shown disabled with reasons?"
     impact: "Mode switch behavior and pitch risk around RF permissions."
     source: "deadzone-backend-scope mode_strategy"
   - id: OQ-04
