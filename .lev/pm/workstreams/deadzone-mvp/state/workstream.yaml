@@ -1,0 +1,102 @@
+workstream_id: deadzone-mvp
+title: DeadZone MVP
+objective: Ship a local-first crowd-intelligence MVP that demonstrates deterministic replay, live BLE/WiFi-mesh sensing, and a real-time heatmap dashboard via `docker compose up` on a clean checkout
+phase: frontend-integration
+status: active
+owner: chidev
+provenance_ref: null
+lineage_ref: deadzone
+decision_refs:
+  - deterministic mock/replay before live RF capture
+  - aggregate REST + WebSocket contracts define FE/BE boundary
+  - WiFi-faked mesh is demo transport until LoRa hardware is available
+  - BMW M design language captured before application
+question_refs:
+  - choose BMW M rollout strategy (full restyle vs phased PRs)
+  - review scope of backend/app/mesh/{api_extra.py,discovery.py,runtime.py}
+follow_up_refs:
+  - commit untracked mesh files after review
+  - confirm BMW M Phase 1 token swap or alternate rollout
+  - reconcile mesh link-window spec/code deviation
+  - wire /mesh/state into the main backend snapshot API
+  - verify localhost:3000 renders correctly after UI overhaul merge
+extensions:
+  current:
+    date: '2026-05-14'
+    lane: exec
+    confidence: 0.85
+    summary: Local-first crowd-intelligence MVP for hackathon demo. Backend (FastAPI + BLE + WiFi-faked mesh) is feature-complete; frontend (Vite + React) is running at localhost:3000 and is being made responsive (mobile/tablet/desktop) with an a11y-compliant sidebar drawer; BMW M design language is captured and deferred until after responsive pass lands.
+    done_condition: docker compose up boots; backend WebSocket streams IntelligenceSnapshot; frontend heatmap dashboard renders live data + replay AND is responsive across mobile/tablet/desktop with a11y-compliant nav drawer; BMW M visual identity applied; acceptance checks in deadzone-agent-task-bundle.yaml pass.
+    current_focus: Responsive UI pass in flight via background designer subagent (2aec7a6e-b03f-429a-8fe9-15d6f4c8ad30). Three new mesh files are untracked. BMW M CSS rollout strategy is undecided and waits on responsive pass.
+  last_session:
+    date: '2026-05-14'
+    type: exec
+    action: Opened responsive UI session — handoff 20260514-deadzone-mvp-responsive-ui-session-1.md. Dispatched designer subagent for 3-breakpoint responsive pass + sidebar drawer with full a11y (Esc, scrim-click, focus trap, aria-modal, aria-expanded, prefers-reduced-motion). BMW M restyle deferred.
+  sessions:
+    - handoff: .lev/pm/handoffs/20260514-deadzone-mvp-scope-session-1.md
+      status: active
+      summary: Initial PRD scope → UX artifacts → API contract → BE task bundle. WiFi-faked mesh scaffolded (42/42 tests green). Three additional mesh files are currently untracked.
+    - handoff: .lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md
+      status: completed
+      summary: Combined .lev context into consolidated backend PRD YAML and propose task artifacts.
+    - handoff: .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md
+      status: completed
+      summary: Synthesized two UX runs into docs/deadzone-frontend-prd.yaml and pushed to origin/main.
+    - handoff: .lev/pm/handoffs/20260514-merge-reconcile-backend-vs-ui-session-1.md
+      status: completed
+      summary: Reconciled divergent parallel work between BLE backend + mesh and remote UI overhaul.
+    - handoff: .lev/pm/handoffs/20260514-bmw-m-design-language-session-1.md
+      status: paused
+      summary: BMW M design language captured and mapped to DeadZone components; CSS implementation paused until responsive pass lands.
+    - handoff: .lev/pm/handoffs/20260514-deadzone-mvp-responsive-ui-session-1.md
+      status: active
+      summary: Responsive UI pass (mobile/tablet/desktop) + a11y-compliant sidebar drawer. Background designer subagent owns execution; BMW M restyle deferred.
+    - date: '2026-05-14'
+      type: implementation
+      status: completed
+      summary: "MetricsBar.tsx + styles.css: BMW M spec-cell restyle applied; responsive grid 6→3→2→1 col; critical/warning top-rail classes added; clamp() font scaling; no clipping."
+    - date: '2026-05-14'
+      type: implementation
+      status: completed
+      summary: "Dashboard responsive pass: styles.css (.main-content 4-breakpoint grid, .zone-grid 4→3→2→1, .alerts-panel overflow+scroll, .legend max-width, .heatmap-zone minmax cols, prefers-reduced-motion guard); VenueMap.tsx inline grid style removed (CSS-driven); PRESSURE stat clamp() + font-variant-numeric: tabular-nums. Files: frontend/src/styles.css, frontend/src/components/VenueMap.tsx."
+    - date: '2026-05-14'
+      type: implementation
+      status: completed
+      summary: "UI control relocation: moved theme toggle (useTheme/getInitialTheme) from Sidebar.tsx → Header.tsx (header-right, reuses .header-btn); moved Reset button from Header.tsx → Sidebar.tsx footer (.sidebar-item); removed sidebar-status div and its config/useEffect dependencies from Sidebar.tsx. Files: frontend/src/components/Header.tsx, frontend/src/components/Sidebar.tsx."
+  key_artifacts:
+    - path: docs/deadzone-frontend-prd.yaml
+      role: Frontend PRD (pushed, BE-task-compatible)
+    - path: .lev/pm/specs/deadzone-api-contract.yaml
+      role: REST + WebSocket API contract
+    - path: .lev/pm/specs/deadzone-backend-prd.yaml
+      role: Consolidated backend PRD
+    - path: .lev/pm/specs/deadzone-backend-scope.yaml
+      role: Backend architecture + MVP boundary
+    - path: .lev/pm/specs/deadzone-frontend-partner-brief.yaml
+      role: FE implementation brief
+    - path: .lev/pm/plans/deadzone-agent-task-bundle.yaml
+      role: Agent task dependency bundle
+    - path: .lev/pm/designs/bmw-m-design-language.md
+      role: BMW M → DeadZone token + component map
+    - path: .lev/pm/designs/bmw-m-design-language-source.md
+      role: BMW M verbatim source spec
+  pending_commits:
+    - paths:
+        - .lev/pm/designs/bmw-m-design-language.md
+        - backend/app/mesh/api_extra.py
+        - backend/app/mesh/discovery.py
+        - backend/app/mesh/runtime.py
+      status: untracked
+      notes: BMW M design doc is blocked on user go-ahead. Three mesh files need review before commit.
+  blockers:
+    - Three backend mesh files are untracked and not yet reviewed against the original mesh-wifi spec.
+    - BMW M CSS rollout needs user confirmation before application code changes.
+  vision_next_session:
+    - Await designer subagent return; read final report.
+    - Run `cd frontend && npm run typecheck && npm run build`.
+    - Browser-MCP visual QA at 375 / 768 / 1024 / 1280 px.
+    - Keyboard-only smoke test on sidebar drawer (Tab cycles inside, Esc closes, focus returns).
+    - Resume worker with screenshots if QA finds gaps.
+    - Commit frontend changes; close responsive handoff; resume BMW M handoff.
+    - Review backend/app/mesh/{api_extra.py,discovery.py,runtime.py}.
+    - Reconcile mesh link-window spec/code deviation.

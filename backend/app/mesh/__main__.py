@@ -48,6 +48,14 @@ def _parser() -> argparse.ArgumentParser:
     nd.add_argument("--position", type=float, nargs=2, metavar=("X", "Y"))
     nd.add_argument("--seed", type=int, default=1337)
     nd.add_argument("--log-level", default="info")
+
+    sat = sub.add_parser("satellite", help="Run the all-in-one mesh satellite: gateway + UDP beacon discovery (recommended for UI-driven host/join)")
+    sat.add_argument("--host", default="0.0.0.0")
+    sat.add_argument("--port", type=int, default=8001)
+    sat.add_argument("--gateway-id", default="mesh-gateway-local")
+    sat.add_argument("--beacon-port", type=int, default=8002)
+    sat.add_argument("--no-discovery", action="store_true", help="Disable UDP beacon listener + broadcaster")
+    sat.add_argument("--log-level", default="info")
     return p
 
 
@@ -55,6 +63,27 @@ def run_gateway(args: argparse.Namespace) -> int:
     import uvicorn  # local import: only the gateway path needs it
     _configure_logging(args.log_level)
     app = create_app(gateway_id=args.gateway_id)
+    uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
+    return 0
+
+
+def run_satellite(args: argparse.Namespace) -> int:
+    import inspect
+    import uvicorn
+    _configure_logging(args.log_level)
+    # create_app gains enable_discovery / gateway_port / beacon_port kwargs in
+    # Batch B Task 1 (another agent).  Code defensively: pass them only when the
+    # signature already accepts them so the satellite still boots if the other
+    # agent hasn't landed yet (discovery just won't start).
+    sig = inspect.signature(create_app)
+    extra_kwargs: dict[str, object] = {}
+    if "enable_discovery" in sig.parameters:
+        extra_kwargs["enable_discovery"] = not args.no_discovery
+    if "gateway_port" in sig.parameters:
+        extra_kwargs["gateway_port"] = args.port
+    if "beacon_port" in sig.parameters:
+        extra_kwargs["beacon_port"] = args.beacon_port
+    app = create_app(gateway_id=args.gateway_id, **extra_kwargs)  # type: ignore[arg-type]
     uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
     return 0
 
@@ -108,6 +137,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return run_gateway(args)
     if args.cmd == "node":
         return run_node(args)
+    if args.cmd == "satellite":
+        return run_satellite(args)
     return 2  # unreachable due to required=True
 
 

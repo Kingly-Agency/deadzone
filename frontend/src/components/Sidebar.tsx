@@ -1,5 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../store";
+
+function getInitialTheme(): "dark" | "light" {
+  if (typeof window === "undefined") return "dark";
+  const saved = window.localStorage.getItem("deadzone-theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return "dark";
+}
+
+function useTheme(): ["dark" | "light", () => void] {
+  const [theme, setTheme] = useState<"dark" | "light">(() => getInitialTheme());
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    window.localStorage.setItem("deadzone-theme", theme);
+  }, [theme]);
+  return [theme, () => setTheme((t) => (t === "dark" ? "light" : "dark"))];
+}
 
 export function Sidebar({
   collapsed,
@@ -16,8 +32,9 @@ export function Sidebar({
   activeSection: string;
   onSectionChange: (section: string) => void;
 }) {
-  const { snapshot, config } = useStore();
+  const { snapshot, reset } = useStore();
   const [areasOpen, setAreasOpen] = useState(true);
+  const [theme, toggleTheme] = useTheme();
 
   const zones = snapshot?.venue.zones ?? [];
   const zoneAggs = snapshot?.zones ?? [];
@@ -27,19 +44,14 @@ export function Sidebar({
 
   return (
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""}`}>
-      {/* Brand */}
+      <div className="m-stripe-divider" aria-hidden="true" />
+
       <div className="sidebar-brand">
         <div className="sidebar-logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="8" fill="url(#logoGrad)" />
-            <path d="M8 14L14 8L20 14L14 20Z" fill="white" fillOpacity="0.9" />
-            <path d="M11 14L14 11L17 14L14 17Z" fill="url(#logoGrad)" />
-            <defs>
-              <linearGradient id="logoGrad" x1="0" y1="0" x2="28" y2="28">
-                <stop stopColor="#6366F1" />
-                <stop offset="1" stopColor="#8B5CF6" />
-              </linearGradient>
-            </defs>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <rect width="28" height="28" rx="0" fill="#000" />
+            <path d="M8 14L14 8L20 14L14 20Z" fill="#fff" />
+            <path d="M11 14L14 11L17 14L14 17Z" fill="#e22718" />
           </svg>
           {!collapsed && <span className="sidebar-brand-text">DeadZone</span>}
         </div>
@@ -48,7 +60,6 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Navigation */}
       <nav className="sidebar-nav">
         <button
           className={`sidebar-item ${activeSection === "dashboard" ? "sidebar-item--active" : ""}`}
@@ -59,7 +70,6 @@ export function Sidebar({
           {!collapsed && <span className="sidebar-label">Dashboard</span>}
         </button>
 
-        {/* Areas section */}
         <button
           className={`sidebar-item ${activeSection === "areas" ? "sidebar-item--active" : ""}`}
           onClick={() => { onSectionChange("areas"); if (!collapsed) setAreasOpen(!areasOpen); }}
@@ -89,7 +99,7 @@ export function Sidebar({
                   title={`${z.name} — ${density}% density`}
                 >
                   <span className="sidebar-zone-dot" style={{
-                    background: density > 75 ? "#EF4444" : density > 40 ? "#F59E0B" : "#22C55E"
+                    background: density > 75 ? "var(--m-red)" : density > 40 ? "var(--warning)" : "var(--success)"
                   }} />
                   <span className="sidebar-zone-name">{z.name}</span>
                   <span className="sidebar-zone-pct">{density}%</span>
@@ -147,18 +157,53 @@ export function Sidebar({
             {!collapsed && <span className="sidebar-label">Replay</span>}
           </button>
         )}
+
+        <button
+          className={`sidebar-item ${activeSection === "mesh" ? "sidebar-item--active" : ""}`}
+          onClick={() => onSectionChange("mesh")}
+          title="Mesh"
+        >
+          <span className="sidebar-icon">⌬</span>
+          {!collapsed && <span className="sidebar-label">Mesh</span>}
+        </button>
+
+        <button
+          className={`sidebar-item ${activeSection === "configuration" ? "sidebar-item--active" : ""}`}
+          onClick={() => onSectionChange("configuration")}
+          title="Configuration"
+        >
+          <span className="sidebar-icon">⚙︎</span>
+          {!collapsed && <span className="sidebar-label">Configuration</span>}
+        </button>
       </nav>
 
-      {/* Bottom status */}
       <div className="sidebar-footer">
-        <div className="sidebar-status">
-          <span className={`sidebar-conn-dot ${snapshot ? "online" : "offline"}`} />
+        <button
+          type="button"
+          className="sidebar-item"
+          onClick={() => reset()}
+          title="Reset demo (R)"
+          aria-label="Reset demo"
+        >
+          <span className="sidebar-icon">↺</span>
+          {!collapsed && <span className="sidebar-label">Reset</span>}
+        </button>
+        <button
+          type="button"
+          className="sidebar-theme-toggle"
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          <span className="sidebar-theme-toggle-icon" aria-hidden="true">
+            {theme === "dark" ? "☀" : "☾"}
+          </span>
           {!collapsed && (
-            <span className="sidebar-conn-text">
-              {snapshot ? (config?.active_mode?.toUpperCase() ?? "CONNECTED") : "Connecting…"}
+            <span className="sidebar-theme-toggle-label">
+              {theme === "dark" ? "Light mode" : "Dark mode"}
             </span>
           )}
-        </div>
+        </button>
       </div>
     </aside>
   );

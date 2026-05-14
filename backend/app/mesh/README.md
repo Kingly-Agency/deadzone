@@ -2,57 +2,60 @@
 
 Standalone satellite FastAPI service (port 8001) that lets two laptops simulate a Meshtastic mesh network over plain WiFi. Each laptop runs an independent BLE scanner and posts zone-aggregate packets to a shared gateway at 1 Hz. No LoRa hardware required. The honest demo claim: **mesh transport simulated via WiFi; sensing is real BLE on two independent nodes.** This exists so hackathon judges can see distributed multi-node sensing today, while the packet shape stays forward-compatible with real Meshtastic hardware later.
 
-## Quick Start -- Two-Laptop Test
+## Quick Start -- Two-Laptop Test (1-click via UI)
 
-Total setup time: under 10 minutes.
+Both laptops need the repo cloned and the backend dependencies installed once.
 
-```
-┌──────────────┐  HTTP POST /mesh/aggregate  ┌──────────────────┐
-│  Node A       │ ──────────────────────────▶ │  Gateway         │
-│  (laptop 1)   │                             │  (laptop 1)      │
-│  BLE scanner  │                             │  FastAPI :8001   │
-└──────────────┘                             │                  │
-┌──────────────┐  HTTP POST /mesh/aggregate  │  ┌────────────┐  │
-│  Node B       │ ──────────────────────────▶ │  │ MergeEngine│  │
-│  (laptop 2)   │                             │  └────────────┘  │
-│  BLE scanner  │                             └──────────────────┘
+### Pre-flight (one-time per laptop)
+
+```bash
+git clone https://github.com/Kingly-Agency/deadzone.git
+cd deadzone/backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
 ```
 
-1. **Pick the gateway laptop.** Any one of the two.
+### Run the demo
 
-2. **Find the gateway laptop's LAN IP:**
-   ```bash
-   # macOS
-   ipconfig getifaddr en0
-   # Linux
-   ip addr show | grep 'inet ' | grep -v 127.0.0.1
-   ```
+**Both laptops**, in three separate terminals each:
 
-3. **Start the gateway** (on the gateway laptop, from `deadzone/backend/`):
-   ```bash
-   uvicorn app.mesh.app:app --host 0.0.0.0 --port 8001
-   ```
+```bash
+# Terminal 1: mesh satellite (gateway + UDP discovery)
+cd deadzone/backend && source .venv/bin/activate
+python -m app.mesh satellite
 
-4. **Verify the gateway is up:**
-   ```bash
-   curl http://localhost:8001/mesh/healthz
-   # {"ok":true,"gateway_id":"mesh-gateway-local","uptime_s":1.2,"node_count":0}
-   ```
+# Terminal 2: main backend (BLE capture + dashboard data)
+cd deadzone/backend && source .venv/bin/activate
+uvicorn app.main:app --port 8000  # or whatever the BE agent wires
 
-5. **Start a node on each laptop** (including the gateway laptop), from `deadzone/backend/`:
-   ```bash
-   # Gateway laptop
-   python -c "import asyncio; from app.mesh.node import MeshNode, MockNodeScanner; from app.mesh.transport import AggregateClient; asyncio.run(MeshNode(node_id='laptop-A', client=AggregateClient('http://localhost:8001'), scanner=MockNodeScanner()).run())"
+# Terminal 3: frontend
+cd deadzone/frontend
+npm install && npm run dev
+```
 
-   # Partner's laptop (replace <gateway-lan-ip>)
-   python -c "import asyncio; from app.mesh.node import MeshNode, MockNodeScanner; from app.mesh.transport import AggregateClient; asyncio.run(MeshNode(node_id='laptop-B', client=AggregateClient('http://<gateway-lan-ip>:8001'), scanner=MockNodeScanner()).run())"
-   ```
+Open `http://localhost:3000` on each laptop.
 
-6. **Check mesh state** from either machine:
-   ```bash
-   curl http://<gateway-ip>:8001/mesh/state | jq
-   # Should show 2 nodes with merged zones
-   ```
+### 1-click join flow
+
+- **Your laptop** (the host): Sidebar -> **Mesh** -> click **Host Mesh**. Status shows "Hosting" with your laptop already counted as 1 node.
+- **Partner's laptop**: Sidebar -> **Mesh** -> wait ~3s. Your gateway appears in **Discovered**. Click **Join** next to it. Done.
+- Verify on either laptop: GET `/mesh/state` shows 2 nodes, merged zones with both contributing.
+
+### If discovery doesn't work
+
+UDP broadcast can be blocked by:
+- macOS Firewall (System Settings -> Network -> Firewall -> Off, or allow Python)
+- Enterprise / public WiFi with client isolation
+- Different subnets
+
+**Fallback: paste the gateway URL manually.** The Mesh panel has a "Paste URL" field. Find your gateway's LAN IP on the hosting laptop:
+
+```bash
+ipconfig getifaddr en0   # macOS WiFi
+ip addr | grep "inet "   # Linux
+```
+
+Paste `http://<that-ip>:8001` into the field on the partner's UI and click Join.
 
 ## Architecture
 
@@ -68,46 +71,50 @@ Real Meshtastic uses LoRa radios (ESP32 boards, ~$30-50 each). That is not reali
 
 Be honest in the demo: the badge should say **`MESH (WiFi)`** not `MESH (LoRa)`.
 
-## CLI
+## CLI (Advanced)
 
-No `__main__.py` exists yet. Run the gateway via `uvicorn` and nodes via Python:
+The UI is built on these CLI commands. They're stable and supported for scripting / headless demos:
+
+### `satellite` (recommended)
+
+All-in-one: gateway + UDP beacon broadcaster + listener. The UI drives lifecycle via HTTP.
 
 ```bash
-# Gateway
-uvicorn app.mesh.app:app --host 0.0.0.0 --port 8001
-
-# Node (mock scanner, from deadzone/backend/)
-python -c "
-import asyncio; from app.mesh.node import MeshNode, MockNodeScanner; from app.mesh.transport import AggregateClient
-asyncio.run(MeshNode(node_id='my-node', client=AggregateClient('http://<host>:8001'), scanner=MockNodeScanner(seed=1337)).run())
-"
+python -m app.mesh satellite [--port 8001] [--beacon-port 8002] [--gateway-id NAME] [--no-discovery]
 ```
 
-Key constructor parameters: `MeshNode(node_id, client, scanner, interval_s=1.0, position=None)` and `AggregateClient(gateway_url, timeout_s=2.0, buffer_size=60)`.
+### `gateway` (advanced)
+
+Gateway-only (no discovery beacons). Useful if you want to run multiple gateways on one host for testing.
+
+```bash
+python -m app.mesh gateway --port 8001 [--gateway-id NAME]
+```
+
+### `node` (advanced)
+
+Standalone node that POSTs aggregates to a known gateway URL. Bypasses the UI and the satellite's runtime; useful for headless multi-node demos.
+
+```bash
+python -m app.mesh node --gateway http://HOST:8001 --node-id NAME [--interval 1.0] [--position X Y] [--seed 1337]
+```
 
 ## Endpoints
 
 All endpoints are under the `/mesh` prefix.
 
-### `GET /mesh/healthz`
-
-Gateway liveness. Returns `GatewayHealth`: `{"ok": true, "gateway_id": "...", "uptime_s": 42.3, "node_count": 2}`. Status: **200**.
-
-### `POST /mesh/aggregate`
-
-Ingest one aggregate packet from a node. Request body: `AggregatePacket` (see [Packet shape](#packet-shape)). Response `AggregateAccepted`:
-```json
-{"accepted": true, "last_seq": 17, "node_id": "laptop-A", "received_at": "2026-05-14T22:01:03.456Z"}
-```
-Status: **200** accepted, **400** malformed, **422** Pydantic validation error.
-
-### `GET /mesh/state`
-
-Full merged mesh snapshot. Returns `MeshSnapshot` with fields: `gateway_id`, `updated_at`, `uptime_s`, `nodes` (list of `NodeState`), `zones_merged` (list of `MergedZone`), `mesh_links` (list of `MeshLink`), and `metrics` dict (`node_count`, `live_count`, `stale_count`, `offline_count`, `total_estimated_devices`, `merged_zone_count`, `mesh_link_count`). Status: **200**.
-
-### `GET /mesh/nodes`
-
-List all known nodes with lifecycle status. Returns `list[NodeState]` -- each entry has: `node_id`, `status` (`live`|`stale`|`offline`), `position`, `last_seen`, `latency_ms`, `packets_received`, `scanner_kind`, `scanner_status`, `last_freshness`. Status: **200**.
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /mesh/healthz | Liveness + node_count |
+| POST | /mesh/aggregate | Receive a node's aggregate packet |
+| GET | /mesh/state | Full MeshSnapshot (merged zones, mesh links, sensors) |
+| GET | /mesh/nodes | List of NodeState |
+| POST | /mesh/host | Become a gateway (auto-joins self) |
+| POST | /mesh/unhost | Stop hosting |
+| POST | /mesh/join | Start a node coroutine pointing at a remote gateway |
+| POST | /mesh/leave | Cancel the node coroutine |
+| GET | /mesh/me | Current role + status |
+| GET | /mesh/discover | Recently-heard peer gateways |
 
 ## Packet shape
 
@@ -143,6 +150,20 @@ Wire format for `POST /mesh/aggregate`. The `schema` field is always `deadzone.m
 ```
 
 Note: `schema` is the JSON key; the Pydantic field name is `schema_id` (aliased to avoid shadowing Python's `schema` builtin).
+
+## Beacon shape
+
+```json
+{
+  "schema": "deadzone.mesh.beacon.v1",
+  "gateway_id": "main-gateway",
+  "gateway_url": "http://10.0.0.7:8001",
+  "version": "0.1.0",
+  "broadcast_at": "2026-05-14T18:45:00Z"
+}
+```
+
+UDP, port 8002 by default, broadcast to 255.255.255.255, every 3 seconds. Listener TTL: 30s.
 
 ## Privacy model
 
@@ -188,6 +209,7 @@ The gateway merges zone data across all nodes with `status == "live"`:
 | **Node down**       | Gateway marks stale after 3s, offline after 10s. Dashboard shows degraded ring.                      |
 | **Clock skew**      | Gateway uses receive-time for ordering; node timestamp stored for diagnostics only.                  |
 | **Different subnets** | HTTP POST fails. Use explicit IP for `--gateway`. Put both laptops on the same WiFi or hotspot.    |
+| **Beacon discovery fails** | UDP blocked by firewall or client isolation. Use the Paste URL fallback in the UI.            |
 
 ## Out of scope
 
@@ -195,13 +217,6 @@ The gateway merges zone data across all nodes with `status == "live"`:
 - Wiring mesh state into `/api/v1/snapshot` of the main backend (separate BE task)
 - Frontend changes -- FE can call `/mesh/state` directly or via proxy
 - Auth, HTTPS, encryption -- LAN demo only
-
-## Pre-flight checklist for the partner
-
-- [ ] Same WiFi network as the gateway laptop
-- [ ] Firewall allows inbound TCP 8001 on the gateway laptop
-- [ ] `pip install -e '.[sensors]'` from `backend/` if using real BLE scanner
-- [ ] macOS Bluetooth permission granted to the terminal app
 
 ## Troubleshooting
 
@@ -211,3 +226,5 @@ The gateway merges zone data across all nodes with `status == "live"`:
 | `Connection refused on 8001`         | Gateway not running, or wrong host in the URL                          |
 | `BLE permission denied (macOS)`      | System Settings > Privacy & Security > Bluetooth > enable Terminal/iTerm |
 | Different counts on two nodes        | Each node sees a non-overlapping cohort; SUM is naive but acceptable for MVP |
+| Discovered list is empty on partner's laptop | UDP blocked. Use the Paste URL fallback in the UI. Or try a phone hotspot. |
+| POST /mesh/join returns 400         | gateway_url is malformed. Use the exact `http://IP:8001` shape.        |

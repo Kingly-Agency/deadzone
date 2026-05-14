@@ -174,20 +174,20 @@ export interface CaptureStatus {
   latest_observation_at: string | null;
 }
 
-// ── Mode display tokens ─────────────────────────────────────────────────
+// ── Mode display tokens (BMW M / DeadZone-native tricolor) ─────────────
 export const MODE_TOKENS: Record<Mode, { color: string; label: string; badge: string }> = {
-  mock:   { color: "#3B82F6", label: "MOCK",   badge: "Simulated data" },
-  replay: { color: "#F59E0B", label: "REPLAY", badge: "Recorded data" },
-  ble:    { color: "#10B981", label: "BLE",    badge: "Real-time BLE sensing" },
-  wifi:   { color: "#14B8A6", label: "WI-FI",  badge: "Real-time Wi-Fi sensing" },
+  mock:   { color: "#7e7e7e", label: "MOCK",   badge: "Simulated data" },
+  replay: { color: "#f4b400", label: "REPLAY", badge: "Recorded data" },
+  ble:    { color: "#e22718", label: "BLE",    badge: "Real-time BLE sensing" },
+  wifi:   { color: "#0066b1", label: "WI-FI",  badge: "Real-time Wi-Fi sensing" },
   mesh:   { color: "#8B5CF6", label: "MESH",   badge: "Distributed sensors" },
-  hybrid: { color: "#22C55E", label: "HYBRID", badge: "Combined live sensing" },
+  hybrid: { color: "#ffffff", label: "HYBRID", badge: "Combined live sensing" },
 };
 
 export const SEVERITY_TOKENS: Record<Severity, { color: string; icon: string }> = {
-  info:     { color: "#3B82F6", icon: "●" },
-  warning:  { color: "#F59E0B", icon: "▲" },
-  critical: { color: "#EF4444", icon: "▲▲" },
+  info:     { color: "#0066b1", icon: "●" },
+  warning:  { color: "#f4b400", icon: "▲" },
+  critical: { color: "#e22718", icon: "▲▲" },
 };
 
 export const TREND_ICONS: Record<Trend, string> = {

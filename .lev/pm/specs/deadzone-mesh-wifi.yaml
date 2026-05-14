@@ -285,6 +285,67 @@ done_criteria:
     description: "Zero-coupling check: the mesh module never imports from app.main, app.runtime.engine, or app.api.routes."
   - id: DC-MESH-06
     description: "GET /mesh/nodes shows correct lifecycle transitions: live → stale → offline when a node stops sending."
+  - id: DC-MESH-07
+    description: "UI-driven 1-click join works end-to-end on two laptops: host on A, partner sees A in discover list, clicks join, /mesh/state shows 2 contributing nodes."
+    verifier: "Manual two-laptop smoke; see README Quick Start."
+
+discovery:
+  transport: udp_broadcast
+  port: 8002
+  packet_schema: deadzone.mesh.beacon.v1
+  broadcast_interval_s: 3
+  ttl_s: 30
+  broadcast_address: 255.255.255.255
+  beacon_fields:
+    schema: "deadzone.mesh.beacon.v1"
+    gateway_id: "stable per-process identifier"
+    gateway_url: "http://<host>:<gateway-port>"
+    version: "semantic version of the satellite"
+    broadcast_at: "ISO-8601 UTC timestamp at send time"
+  security_note: "LAN-trusted only; any host on the LAN can announce a gateway. Acceptable for hackathon-demo scope; not for production. Beacon spoofing is possible and intentionally unmitigated in this iteration."
+  fallback: manual_paste
+  failure_modes:
+    - "macOS Firewall may block inbound UDP — document the manual-paste fallback"
+    - "Enterprise / public WiFi may enable client isolation — recommend phone hotspot"
+    - "Different subnets between laptops — use explicit IP in manual paste"
+
+ui_driven_lifecycle:
+  rationale: "Partner can join the mesh with a single click in the dashboard instead of running a CLI command."
+  invariants:
+    - "The satellite at :8001 owns BOTH gateway and node lifecycles per laptop."
+    - "Auto-host-self: when POST /mesh/host succeeds, the satellite also joins its own gateway at http://127.0.0.1:<port>. Your laptop's data shows up in merged zones without a second click."
+    - "Only one node coroutine per satellite at a time (joining a new gateway while already joined will leave the current one first)."
+    - "/mesh/discover excludes self by default (self-filtered via gateway_id)."
+  endpoints:
+    - method: POST
+      path: "/mesh/host"
+      body: "HostRequest { gateway_id?: str, beacon?: bool=true }"
+      response: "MeRoleResponse"
+    - method: POST
+      path: "/mesh/unhost"
+      body: "empty"
+      response: "MeRoleResponse"
+    - method: POST
+      path: "/mesh/join"
+      body: "JoinRequest { gateway_url: str, node_id?: str, position?: [float, float], scanner?: 'mock', seed?: int }"
+      response: "MeRoleResponse"
+    - method: POST
+      path: "/mesh/leave"
+      body: "empty"
+      response: "MeRoleResponse"
+    - method: GET
+      path: "/mesh/me"
+      response: "MeRoleResponse"
+    - method: GET
+      path: "/mesh/discover"
+      response: "list[DiscoveredGatewayResponse]"
+  role_state_machine:
+    states: [idle, hosting, joined, hosting_and_joined]
+    transitions:
+      idle: "POST /mesh/host -> hosting (auto-self-joined, so effectively hosting_and_joined-via-loopback). POST /mesh/join -> joined."
+      hosting: "POST /mesh/unhost -> idle. POST /mesh/join (external) -> hosting_and_joined."
+      joined: "POST /mesh/leave -> idle. POST /mesh/host -> hosting_and_joined."
+      hosting_and_joined: "POST /mesh/leave -> hosting. POST /mesh/unhost -> joined."
 
 out_of_scope:
   - item: "Real Meshtastic LoRa integration"

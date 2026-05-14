@@ -92,9 +92,9 @@ function HeatmapLegend() {
 }
 
 function densityColor(pct: number): string {
-  if (pct < 0.25) return "#440154";
-  if (pct < 0.5) return "#3B528B";
-  if (pct < 0.75) return "#21908C";
-  if (pct < 0.9) return "#5DC863";
-  return "#FDE725";
+  if (pct < 0.25) return "var(--density-1)";
+  if (pct < 0.5) return "var(--density-2)";
+  if (pct < 0.75) return "var(--density-3)";
+  if (pct < 0.9) return "#ff6b3d";
+  return "var(--density-4)";
 }

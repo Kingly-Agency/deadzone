@@ -39,7 +39,7 @@ export function MetricsBar() {
         <div className="metric-value">{animatedTotalDevices.toLocaleString()}</div>
         <div className="metric-sub">Estimated from RF signals</div>
       </div>
-      <div className="metric-card">
+      <div className={`metric-card${capacityPct > 85 ? " metric-card--critical" : capacityPct > 70 ? " metric-card--warning" : ""}`}>
         <span className="metric-icon">📈</span>
         <div className="metric-label">Capacity</div>
         <div className={`metric-value ${capacityPct > 85 ? "trend-spiking" : capacityPct > 70 ? "trend-rising" : ""}`}>
@@ -60,14 +60,14 @@ export function MetricsBar() {
           {trendIcon} {trend}
         </div>
       </div>
-      <div className="metric-card">
+      <div className={`metric-card${animatedActiveAlerts > 0 ? " metric-card--critical" : ""}`}>
         <span className="metric-icon">🔔</span>
         <div className="metric-label">Active Alerts</div>
         <div className={`metric-value ${animatedActiveAlerts > 0 ? "trend-spiking" : ""}`}>
           {animatedActiveAlerts}
         </div>
       </div>
-      <div className="metric-card">
+      <div className={`metric-card${metrics.offline_sensors > 0 ? " metric-card--warning" : ""}`}>
         <span className="metric-icon">📡</span>
         <div className="metric-label">Offline Sensors</div>
         <div className={`metric-value ${metrics.offline_sensors > 0 ? "trend-rising" : ""}`}>

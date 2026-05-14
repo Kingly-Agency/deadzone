@@ -143,13 +143,71 @@ class AggregateAccepted(BaseModel):
     received_at: datetime
 
 
+# ---------------------------------------------------------------------------
+# UI-driven mesh lifecycle (Batch B addition)
+# ---------------------------------------------------------------------------
+
+MeshRole = Literal["idle", "hosting", "joined", "hosting_and_joined"]
+
+
+class HostRequest(BaseModel):
+    """Request body for POST /mesh/host."""
+
+    gateway_id: str | None = None
+    beacon: bool = True
+
+
+class JoinRequest(BaseModel):
+    """Request body for POST /mesh/join."""
+
+    gateway_url: str
+    node_id: str | None = None
+    position: tuple[float, float] | None = None
+    scanner: Literal["mock"] = "mock"
+    seed: int = 1337
+
+
+class MeRoleResponse(BaseModel):
+    """Response from GET /mesh/me — current role of this satellite."""
+
+    role: MeshRole
+    hosting: bool
+    beacon_active: bool
+    joined: bool
+    joined_url: str | None = None
+    joined_gateway_id: str | None = None
+    node_id: str | None = None
+    packets_sent: int = 0
+    buffered: int = 0
+    gateway_id: str
+    listening: bool
+    discovered_peer_count: int = 0
+
+
+class DiscoveredGatewayResponse(BaseModel):
+    """Response item in GET /mesh/discover."""
+
+    gateway_id: str
+    gateway_url: str
+    version: str
+    last_seen_s_ago: float
+    first_seen: datetime
+    beacon_count: int
+    is_self: bool = False
+
+
 __all__ = [
     "AggregateAccepted",
     "AggregatePacket",
+    "DiscoveredGatewayResponse",
     "Freshness",
     "GatewayHealth",
+    "HostRequest",
+    "JoinRequest",
+    "MeRoleResponse",
     "MergedZone",
     "MeshLink",
+    "MeshRole",
     "MeshSnapshot",
     "NodeState",
     "NodeStatus",

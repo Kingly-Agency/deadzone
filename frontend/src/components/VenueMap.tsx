@@ -52,13 +52,7 @@ export function VenueMap({
 
   return (
     <div className="venue-map">
-      <div
-        className="zone-grid"
-        style={{
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gridTemplateRows: "repeat(2, 1fr)",
-        }}
-      >
+      <div className="zone-grid">
         {venue.zones.map((vz) => {
           const z = zoneMap.get(vz.id);
           if (!z) return null;

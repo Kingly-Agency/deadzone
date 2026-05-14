@@ -10,6 +10,7 @@ export default defineConfig({
       "/ws": { target: "ws://localhost:8000", ws: true, changeOrigin: true },
       "/health": { target: "http://localhost:8000", changeOrigin: true },
       "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/mesh": { target: "http://localhost:8001", changeOrigin: true, ws: false },
     },
   },
 });

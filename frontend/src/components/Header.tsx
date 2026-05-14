@@ -1,7 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../store";
 import { MODE_TOKENS } from "../types";
 import type { Mode } from "../types";
+
+function getInitialTheme(): "dark" | "light" {
+  if (typeof window === "undefined") return "dark";
+  const saved = window.localStorage.getItem("deadzone-theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return "dark";
+}
+
+function useTheme(): ["dark" | "light", () => void] {
+  const [theme, setTheme] = useState<"dark" | "light">(() => getInitialTheme());
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    window.localStorage.setItem("deadzone-theme", theme);
+  }, [theme]);
+  return [theme, () => setTheme((t) => (t === "dark" ? "light" : "dark"))];
+}
 
 const MODE_LIST: { mode: Mode; desc: string }[] = [
   { mode: "mock",   desc: "Simulated data, seeded RNG" },
@@ -13,8 +29,9 @@ const MODE_LIST: { mode: Mode; desc: string }[] = [
 ];
 
 export function Header() {
-  const { snapshot, config, switchMode, reset } = useStore();
+  const { snapshot, config, switchMode } = useStore();
   const [showModes, setShowModes] = useState(false);
+  const [theme, toggleTheme] = useTheme();
 
   const mode: Mode = snapshot?.stream.mode ?? config?.active_mode ?? "mock";
   const token = MODE_TOKENS[mode];
@@ -28,14 +45,6 @@ export function Header() {
           <span className="breadcrumb-sep">/</span>
           <span className="breadcrumb-current">Overview</span>
         </nav>
-      </div>
-
-      <div className="header-center">
-        <div className="header-search">
-          <span className="search-icon">⌕</span>
-          <input type="text" placeholder="Search zones, sensors…" className="search-input" readOnly />
-          <kbd className="search-kbd">⌘K</kbd>
-        </div>
       </div>
 
       <div className="header-right">
@@ -88,22 +97,15 @@ export function Header() {
           )}
         </div>
 
-        <button className="header-btn" onClick={() => reset()} title="Reset demo (R)">
-          ↺ Reset
+        <button
+          className="header-btn"
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? "☀" : "☾"}
         </button>
 
-        {/* Notification bell */}
-        <button className="header-btn header-bell" title="Notifications">
-          🔔
-          {(snapshot?.metrics.active_alerts ?? 0) > 0 && (
-            <span className="bell-badge">{snapshot?.metrics.active_alerts}</span>
-          )}
-        </button>
-
-        {/* Avatar */}
-        <div className="header-avatar" title="Operator">
-          <span>OP</span>
-        </div>
       </div>
     </header>
   );
