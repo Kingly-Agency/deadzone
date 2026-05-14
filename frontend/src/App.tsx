@@ -9,6 +9,7 @@ import { ZoneDetail } from "./components/ZoneDetail";
 import { AlertToast } from "./components/AlertToast";
 import { Footer } from "./components/Footer";
 import { ReplayControls } from "./components/ReplayControls";
+import { HeatmapDashboard } from "./components/HeatmapDashboard";
 import "./styles.css";
 
 function Dashboard() {
@@ -56,17 +57,23 @@ function Dashboard() {
         <MetricsBar />
 
         <div className="main-content">
-          <div className="canvas-wrap">
-            <VenueMap
-              selectedZone={selectedZone}
-              onZoneClick={handleZoneClick}
-            />
-            <ReplayControls />
-          </div>
-          {selectedZone ? (
-            <ZoneDetail zoneId={selectedZone} onClose={() => setSelectedZone(null)} />
+          {activeSection === "heatmap" ? (
+            <HeatmapDashboard />
           ) : (
-            <AlertsPanel onViewZone={(z) => setSelectedZone(z)} />
+            <>
+              <div className="canvas-wrap">
+                <VenueMap
+                  selectedZone={selectedZone}
+                  onZoneClick={handleZoneClick}
+                />
+                <ReplayControls />
+              </div>
+              {selectedZone ? (
+                <ZoneDetail zoneId={selectedZone} onClose={() => setSelectedZone(null)} />
+              ) : (
+                <AlertsPanel onViewZone={(z) => setSelectedZone(z)} />
+              )}
+            </>
           )}
         </div>
 

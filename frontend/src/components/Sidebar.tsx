@@ -100,6 +100,15 @@ export function Sidebar({
         )}
 
         <button
+          className={`sidebar-item ${activeSection === "heatmap" ? "sidebar-item--active" : ""}`}
+          onClick={() => onSectionChange("heatmap")}
+          title="Heatmap"
+        >
+          <span className="sidebar-icon">🔥</span>
+          {!collapsed && <span className="sidebar-label">Heatmap</span>}
+        </button>
+
+        <button
           className={`sidebar-item ${activeSection === "alerts" ? "sidebar-item--active" : ""}`}
           onClick={() => onSectionChange("alerts")}
           title="Alerts"
