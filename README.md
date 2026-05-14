@@ -1,126 +1,47 @@
-<div align="center">
-  <h1>🎯 DeadZone</h1>
-  <p><strong>Real-time crowd-intelligence platform. Mock → Replay → Live → Mesh.</strong></p>
-  
-  <p>
-    <a href="#features">Features</a> •
-    <a href="#architecture">Architecture</a> •
-    <a href="#quick-start">Quick Start</a> •
-    <a href="#engineering-principles">Principles</a>
-  </p>
+# DeadZone
 
-  <p>
-    <img src="https://img.shields.io/badge/Python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-    <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
-    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
-    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
-    <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite">
-  </p>
-</div>
+> Real-time crowd-intelligence platform. **Mock → Replay → Live → Mesh.**
 
-<br/>
+DeadZone is an observability layer for physical spaces. Live crowd density, movement flow, congestion zones, and dead Wi-Fi areas — without attendee apps, accounts, QR codes, or interaction. Passive RF sensing only.
 
-> **DeadZone** is an observability layer for physical spaces. Live crowd density, movement flow, congestion zones, and dead Wi-Fi areas — without attendee apps, accounts, QR codes, or interaction. Passive RF sensing only.
+## Features
 
----
+- **Spatial Intelligence**: Real-time visual heatmaps and drifting device-level particles overlaid on venue floor plans.
+- **Multi-Mode Engine**: 
+  - `Mock`: Synthetic event generation for guaranteed, repeatable demos.
+  - `Replay`: Playback recorded, high-density traffic scenarios (like a stadium ingress or concert exit).
+  - `Live (BLE)`: Real-time Bluetooth Low Energy passive scanning and telemetry rendering.
+  - `Mesh`: Integration with LoRa relays (Meshtastic) for outdoor or no-Wi-Fi venues.
+- **Live Device Telemetry**: Granular observation of sensed MAC hashes, RSSI values, and zone assignments via a WebSocket-powered event stream.
+- **Alerting & Diagnostics**: Automated alerts based on density thresholds and real-time mesh link quality.
 
-## ✨ Key Features
-
-| Feature | Description |
-| :--- | :--- |
-| 🗺️ **Spatial Intelligence** | Real-time visual heatmaps and drifting device-level particles overlaid on venue floor plans. |
-| 🔄 **Multi-Mode Engine** | Operate seamlessly across `Mock`, `Replay`, `Live (BLE)`, and `Mesh` data sources. |
-| 📡 **Live Telemetry** | Granular observation of sensed MAC hashes, RSSI values, and zone assignments via WebSockets. |
-| 🚨 **Alerting & Diagnostics** | Automated alerts based on density thresholds and real-time mesh link quality. |
-
----
-
-## 🏗️ Architecture
-
-DeadZone is built on a modern, decoupled architecture designed for high throughput and low-latency rendering of spatial data.
-
-### System Topology
+## Architecture
 
 ```mermaid
-graph TD
-    %% Styling
-    classDef source fill:#f9f9f9,stroke:#333,stroke-width:2px,color:#000;
-    classDef engine fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#000;
-    classDef ui fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px,color:#000;
-    classDef ws fill:#fff8e1,stroke:#ffa000,stroke-width:2px,stroke-dasharray: 5 5,color:#000;
-
-    %% Nodes
-    subgraph Edge["📡 Data Sources (Edge)"]
-        S1["📶 BLE Scanner"]:::source
-        S2["🛜 Scapy Wi-Fi"]:::source
-        S3["🕸️ Meshtastic LoRa"]:::source
-    end
-
-    subgraph Core["⚙️ FastAPI Engine (Core)"]
-        E1("🔀 Data Ingestion Router"):::engine
-        E2{"🎛️ Mode Controller"}:::engine
-        E3[("💾 Local Trace Records")]:::engine
-        M["🪄 Mock Generator"]:::engine
-        
-        E1 --> E2
-        E3 -.->|Replay Mode| E2
-        M -.->|Mock Mode| E2
-    end
-
-    subgraph Client["💻 React Frontend (Client)"]
-        UI1["🗺️ Spatial Map Canvas"]:::ui
-        UI2["📋 Device Event Table"]:::ui
-        UI3["📊 Metrics Dashboard"]:::ui
-    end
-
-    %% Connections
-    S1 -->|Raw Telemetry| E1
-    S2 -->|Raw Telemetry| E1
-    S3 -->|Mesh Packets| E1
+graph LR
+    A[Sensor Sources] --> B[FastAPI Engine]
+    B -->|REST & WebSockets| C[React Frontend]
     
-    E2 -->|Processed Events| WS(("⚡ WebSocket Stream")):::ws
-    
-    WS ===>|JSON Payloads| UI1
-    WS ===>|JSON Payloads| UI2
-    WS ===>|JSON Payloads| UI3
-```
-
-### Data Flow Sequence
-
-How a device ping is processed and visualized in real-time:
-
-```mermaid
-sequenceDiagram
-    participant Device as 📱 Attendee Device
-    participant Scanner as 📡 Edge Scanner
-    participant Engine as ⚙️ FastAPI Engine
-    participant WS as 🔌 WebSocket
-    participant UI as 💻 Frontend Map
-
-    Device-->>Scanner: Broadcasts BLE/Wi-Fi Probe
-    Scanner->>Engine: Raw Telemetry (MAC Hash, RSSI)
-    
-    rect rgb(240, 248, 255)
-        note right of Engine: Processing Phase
-        Engine->>Engine: Anonymize & Hash MAC
-        Engine->>Engine: Calculate distance via RSSI
-        Engine->>Engine: Assign to spatial zone
+    subgraph Frontend
+    C1[Spatial Map Canvas]
+    C2[Device Event Table]
+    C3[Metrics Bar]
+    C --> C1 & C2 & C3
     end
     
-    Engine->>WS: Emit formatted `DeviceEvent`
-    WS->>UI: Broadcast JSON payload
-    
-    rect rgb(255, 240, 245)
-        note right of UI: Rendering Phase
-        UI->>UI: Update spatial particle state
-        UI->>UI: Recalculate heatmap density
-        UI->>UI: Trigger UI animations
+    subgraph Backend
+    B1[BLE Scanner]
+    B2[Mock Generator]
+    B3[Replay Controller]
+    B1 & B2 & B3 --> B
     end
 ```
 
----
+- **Backend**: Python 3.11, FastAPI, asyncio, WebSockets, Bleak (BLE), Scapy (Wi-Fi passive)
+- **Frontend**: React + Vite + TypeScript, custom spatial map (SVG particles)
+- **Data Persistence**: Local trace recordings for replay mechanisms.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -129,7 +50,7 @@ sequenceDiagram
 - Node.js 20+ and `npm`
 - **Bluetooth permission** granted to the DeadZone launcher (one-time, see below)
 
-### The Two Backends
+### The two backends
 
 DeadZone runs **two FastAPI services**:
 
@@ -140,9 +61,7 @@ DeadZone runs **two FastAPI services**:
 
 The frontend (`:3000`) talks to both via Vite proxies (`/api/v1/*`, `/ws/*` → 8000; `/mesh/*` → 8001).
 
-### Option 1: Native Local Development (Recommended)
-
-Run the full stack natively for the best experience.
+### Run the full stack (three terminals)
 
 ```bash
 # Terminal 1 — main backend with real BLE scanning
@@ -163,7 +82,7 @@ npm run dev
 
 Open <http://localhost:3000>. Sidebar:
 - **Dashboard / Areas / Heatmap / Alerts / Sensors**: real BLE data once you start a capture (POST `/api/v1/capture/start` or click the capture button)
-- **Mesh**: click **HOST MESH** to start advertising over UDP. Partner laptops on the same network see your gateway in their **Discovered Gateways** list and can **Join** in one click. Manual-paste fallback if UDP is blocked. See [`backend/app/mesh/README.md`](backend/app/mesh/README.md) for the full mesh runbook.
+- **Mesh**: click **HOST MESH** to start advertising over UDP. Partner laptops on the same network see your gateway in their **Discovered Gateways** list and can **Join** in one click. Manual-paste fallback if UDP is blocked (firewall, enterprise WiFi). See [`backend/app/mesh/README.md`](backend/app/mesh/README.md) for the full mesh runbook.
 
 ### About the BLE launcher (macOS)
 
@@ -186,7 +105,7 @@ uv run deadzone-permissions
 ```
 Runs a 3-second scan inside the launcher app just to surface the dialog.
 
-### Common Pitfalls
+### Common pitfalls
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -196,83 +115,31 @@ Runs a 3-second scan inside the launcher app just to surface the dialog.
 | MeshPanel shows "mesh request failed (500)" | Mesh satellite isn't running on `:8001` | `cd backend && python -m app.mesh satellite` |
 | `/mesh/discover` returns `[]` on a single laptop | macOS doesn't loopback UDP broadcast to localhost | Expected — works on real LAN with two laptops, or use the manual paste fallback |
 
-### Option 2: Docker (Alternative — Limited)
-
-The fastest way to experience DeadZone's Mock mode is via Docker Compose.
+### Docker (alternative — limited)
 
 ```bash
 docker compose up
 ```
 
-Once running, navigate to [http://localhost:3000](http://localhost:3000). You will immediately see an animated crowd heatmap using our synthetic **Mock** data engine.
+This runs the main backend + frontend, but:
+- BLE doesn't work inside Docker on macOS (no CoreBluetooth access)
+- Mesh satellite is not in the compose file (UDP broadcast inside Docker is fragile on macOS without `network_mode: host`)
 
-**⚠️ Note for Docker:**
-- BLE doesn't work inside Docker on macOS (no CoreBluetooth access).
-- Mesh satellite is not in the compose file (UDP broadcast inside Docker is fragile on macOS without `network_mode: host`).
+So Docker is useful for `Mock` mode and contract testing, not for real BLE or mesh demos. For the full experience use the three-terminal flow above.
 
-Docker is useful for `Mock` mode and contract testing, not for real BLE or mesh demos. For the full experience use the multi-terminal flow above.
+## Engineering Principles
 
----
+- **Deterministic first** — Mock mode produces identical visuals every run; judges need a stable demo
+- **Aggregate > Identity** — Never display or transmit device identifiers; only density, motion, pressure
+- **Event-driven** — `Sensor Event → Aggregation → Spatial Intelligence` everywhere, so replay/sim/ML reuse one pipe
+- **Honest provenance** — Mode badge is persistent and color-coded; mocking is labeled, never hidden
 
-## 🌐 API Overview
+## Repo Layout
 
-DeadZone exposes a clean REST API and WebSocket stream to query intelligence or control the active engine mode.
+- `backend/`: FastAPI application, domain models, runtime engine, and data sources (mock, replay, ble).
+- `frontend/`: React components, store management, spatial rendering (`SpatialMap.tsx`), and styles.
+- `.lev/`: PM and UX specifications, pipelines, and task plans for the agentic development workflow.
 
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/api/v1/snapshot` | `GET` | Retrieve the global spatial state, including zones and active sensors. |
-| `/api/v1/zones` | `GET` | Get crowd aggregates broken down by configured spatial zones. |
-| `/api/v1/mode` | `POST` | Switch the engine between `Mock`, `Replay`, `Live`, and `Mesh` modes. |
-| `/api/v1/capture/start` | `POST` | Begin recording a live BLE trace for later playback. |
-| `/ws/stream` | `WS` | Real-time WebSocket stream emitting high-frequency spatial events. |
+## License
 
----
-
-## 💡 Real-World Use Cases
-
-DeadZone’s passive RF-sensing architecture is designed to map spatial intelligence in highly dynamic environments:
-
-- 🏟️ **Stadiums & Arenas**: Monitor egress/ingress flow, identify dangerous bottlenecks, and optimize security placement.
-- 🏢 **Corporate Campuses**: Track office utilization heatmaps without infringing on individual employee privacy.
-- 🏪 **Retail & Conferences**: Measure dwell time at specific booths or aisles to prove ROI on spatial layouts.
-- 📡 **Disaster Recovery**: Utilize the **Mesh** integration to track emergency responder clusters in zero-connectivity environments.
-
----
-
-## 🧠 Engineering Principles
-
-We adhere strictly to the following principles to ensure reliability and privacy:
-
-```mermaid
-mindmap
-  root((Principles))
-    Deterministic First
-      Stable demos
-      Repeatable outputs
-    Privacy by Design
-      Aggregate over Identity
-      Never transmit raw MACs
-      No persistent tracking
-    Event-Driven Core
-      Single data pipeline
-      Reusable across modes
-    Honest Provenance
-      Clear mode indicators
-      No hidden simulation
-```
-
----
-
-## 📂 Repository Structure
-
-| Directory | Description | Technology Stack |
-| :--- | :--- | :--- |
-| 📁 `backend/` | FastAPI application, domain models, runtime engine, and data sources. | Python 3.11, asyncio, Bleak |
-| 📁 `frontend/` | React components, state management, and spatial SVG rendering. | React, TypeScript, Vite |
-| 📁 `.lev/` | Project management specifications, task plans, and UX artifacts. | Markdown |
-
----
-
-<div align="center">
-  <p><small>Proprietary — Kingly Agency © 2026</small></p>
-</div>
+Proprietary — Kingly Agency.

@@ -46,7 +46,7 @@ export function SpatialMap({
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("/api/v1/sensors/local-ble-scanner/events?limit=100");
+        const res = await fetch("/api/v1/sensors/local-ble-scanner/events?limit=1000");
         if (res.ok) {
           const data = await res.json();
           // Keep only latest event per beacon_hash
@@ -105,17 +105,23 @@ export function SpatialMap({
         </defs>
 
         {venue.zones.map((vz) => (
-          <ZoneOverlay 
-            key={vz.id} 
-            vz={vz} 
-            z={zoneMap.get(vz.id)} 
-            tick={tick} 
-            selectedZone={selectedZone} 
-            onZoneClick={onZoneClick} 
+          <ZoneOverlay
+            key={vz.id}
+            vz={vz}
+            z={zoneMap.get(vz.id)}
+            tick={tick}
+            selectedZone={selectedZone}
+            onZoneClick={onZoneClick}
             realDevices={realDevices.filter(d => d.zone_id === vz.id)}
           />
         ))}
       </svg>
+      <div
+        className="spatial-map-disclaimer"
+        title="The floorplan is illustrative. RSSI tells us distance from the scanner, not direction — so a device's position inside its zone is approximate. Zone labels show 'active beacons / estimated devices'."
+      >
+        ⓘ Illustrative floorplan · RSSI ≈ distance (not direction) · labels: <em>active / estimated</em>
+      </div>
     </div>
   );
 }
@@ -187,7 +193,7 @@ function ZoneOverlay({
       
       {/* Device Particles */}
       <g filter={density > 0 ? "url(#heat-glow)" : undefined}>
-        {particles.map((p, i) => {
+        {particles.map((p) => {
           // Apply gentle drift using the tick
           const driftX = Math.sin(tick * p.speedX) * 2;
           const driftY = Math.cos(tick * p.speedY) * 2;
@@ -221,16 +227,18 @@ function ZoneOverlay({
         rx="0.5" 
         style={{ pointerEvents: 'none' }}
       />
-      <text 
-        x={minX + 7} 
-        y={minY + 4} 
-        fill="#fff" 
-        fontSize="1.6" 
+      <text
+        x={minX + 7}
+        y={minY + 4}
+        fill="#fff"
+        fontSize="1.6"
         fontWeight="600"
         textAnchor="middle"
         style={{ pointerEvents: 'none', letterSpacing: '0.05em' }}
       >
-        {realDevices.length} {realDevices.length === 1 ? 'dev' : 'devs'}
+        {z?.estimated_devices != null && z.estimated_devices !== realDevices.length
+          ? `${realDevices.length}/${z.estimated_devices}`
+          : `${realDevices.length} ${realDevices.length === 1 ? 'dev' : 'devs'}`}
       </text>
     </g>
   );
