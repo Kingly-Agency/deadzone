@@ -1,12 +1,12 @@
 ---
-status: active
+status: completed
 workstream: bmw-m-design-language
 component: ux
 slug: bmw-m-design-language
 session: 1
 created_at: 2026-05-14
 predecessor: 20260514-merge-reconcile-backend-vs-ui-session-1.md
-confidence: 0.7
+confidence: 0.9
 decisions_start: D1
 related_tasks: []
 related_docs:
@@ -26,9 +26,9 @@ canonical_refs:
 **Workstream:** bmw-m-design-language
 **Component:** ux
 **Session:** 1
-**Status:** active
+**Status:** completed
 
-Captured BMW M's marketing-surface design language as the canonical DeadZone visual identity. Source spec + DeadZone-mapped design doc are filed in `.lev/pm/designs/`. **No frontend code has been changed yet** — implementation is pending user direction on scope (full restyle vs phased rollout).
+Captured BMW M's design language as canonical, then user approved full 5-phase rollout with DeadZone-native tricolor (`#0066b1 → #8B5CF6 → #e22718`). Implementation landed in commit `585a940`. Light/dark theme toggle added per user request (overriding original D5 decision). All breakpoints + both themes verified via agent-browser.
 
 ## Next Agent Brief
 
@@ -78,6 +78,17 @@ Captured BMW M's marketing-surface design language as the canonical DeadZone vis
 | T+0 | User pasted full BMW M design language spec |
 | T+1 | Created `.lev/pm/designs/` directory (didn't exist yet) |
 | T+2 | Filed source spec verbatim at `.lev/pm/designs/bmw-m-design-language-source.md` (immutable reference) |
+| T+3 | User selected "All 5 phases now" + DeadZone-native tricolor — implementation green-lit |
+| T+4 | Token swap in styles.css :root — black canvas, BMW palette, redshifted density ramp |
+| T+5 | Typography swap — Inter Variable, display utility classes, body 300/16 |
+| T+6 | Radius collapse — --radius-* set to 0, --radius-full retained for icon buttons |
+| T+7 | M-stripe divider component added; applied to sidebar via ::before so it survives concurrent JSX rewrites |
+| T+8 | Light theme override — [data-theme="light"] block (user changed mind on D5) |
+| T+9 | Responsive media queries — tablet 2x2 metrics, mobile sidebar icon-rail at 44x44 aspect-ratio 1/1 |
+| T+10 | Concurrent agent rewrote Sidebar.tsx adding drawer-mode pattern; merged with BMW M layer |
+| T+11 | Theme toggle relocated from Sidebar (stripped by concurrent edit) to Header — self-contained state, survives further edits |
+| T+12 | agent-browser sweep — desktop 1440 / tablet 1024 / mobile 375 × dark + light themes; verified heatmap navigation, M-stripe, icon aspect ratios, drawer behavior |
+| T+13 | Pushed as commit 585a940 |
 
 ### ⚡ CHECKPOINT 1 — Captured BMW M and mapped to DeadZone
 

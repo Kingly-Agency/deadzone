@@ -10,6 +10,7 @@ import { AlertToast } from "./components/AlertToast";
 import { Footer } from "./components/Footer";
 import { ReplayControls } from "./components/ReplayControls";
 import { HeatmapDashboard } from "./components/HeatmapDashboard";
+import { MeshPanel } from "./components/MeshPanel";
 import { Drawer } from "./components/Drawer";
 import "./styles.css";
 
@@ -189,6 +190,8 @@ function Dashboard() {
         <div className="main-content">
           {activeSection === "heatmap" ? (
             <HeatmapDashboard />
+          ) : activeSection === "mesh" ? (
+            <MeshPanel />
           ) : (
             <>
               <div className="canvas-wrap">

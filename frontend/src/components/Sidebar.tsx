@@ -176,6 +176,15 @@ export function Sidebar({
             {!collapsed && <span className="sidebar-label">Replay</span>}
           </button>
         )}
+
+        <button
+          className={`sidebar-item ${activeSection === "mesh" ? "sidebar-item--active" : ""}`}
+          onClick={() => handleSectionChange("mesh")}
+          title="Mesh"
+        >
+          <span className="sidebar-icon">⌬</span>
+          {!collapsed && <span className="sidebar-label">Mesh</span>}
+        </button>
       </nav>
 
       {/* Bottom status */}
