@@ -1799,4 +1799,16 @@ button[aria-label="Toggle sidebar"],
   .display-lg { font-size: 32px; }
   .display-md { font-size: 24px; }
   body { font-size: 14px; }
+  .toast-container {
+    top: auto;
+    bottom: var(--space-md);
+    right: var(--space-md);
+    left: var(--space-md);
+    max-width: none;
+  }
+  .toast-container > * { max-width: 100%; }
+  .footer, .app-footer { flex-wrap: wrap; gap: var(--space-xxs); font-size: 11px; padding: var(--space-sm); }
+  .header { padding: 0 var(--space-sm); gap: var(--space-xs); }
+  .header-search { display: none; }
+  .breadcrumb { font-size: 12px; }
 }
