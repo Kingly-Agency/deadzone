@@ -72,9 +72,9 @@ slices:
         action: "Provide eight simulated sensor nodes and mesh-like mock topology."
         verify: "pytest backend/tests/test_mock_determinism.py -k topology"
     design_refs:
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-1-land"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-7-reset-demo"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-demo-reset-cascade"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-1-land"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-7-reset-demo"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-demo-reset-cascade"
     write_scope:
       - "deadzone/backend/app/sources/mock.py"
       - "deadzone/backend/app/runtime/**"
@@ -147,8 +147,8 @@ slices:
         action: "Re-arm the alert after DemoSession reset."
         verify: "pytest backend/tests/test_mock_timed_alert.py -k reset"
     design_refs:
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-alerts-panel"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#C3"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-alerts-panel"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#C3"
     write_scope:
       - "deadzone/backend/app/spatial/alerts.py"
       - "deadzone/backend/app/runtime/**"
@@ -226,8 +226,8 @@ slices:
         verify: "pytest backend/tests/test_replay_controls.py -k stream"
     design_refs:
       - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.replay"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-4-trigger-replay-scenario"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-replay-picker"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-4-trigger-replay-scenario"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-replay-picker"
     write_scope:
       - "deadzone/backend/app/sources/replay.py"
       - "deadzone/backend/data/replay/**"

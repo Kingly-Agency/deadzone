@@ -71,7 +71,7 @@ slices:
         verify: "pytest backend/tests/test_mode_control.py -k unavailable"
     design_refs:
       - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract.required_additions_to_existing_contract.POST_/api/v1/mode"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-2-switch-mode"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-2-switch-mode"
     write_scope:
       - "deadzone/backend/app/sources/base.py"
       - "deadzone/backend/app/sources/ble.py"
@@ -120,8 +120,8 @@ slices:
       - "Dismissed fallback keeps stale indicator and last-known snapshot."
     operator_context:
       exact_inputs:
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-8-handle-degradation"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-8-handle-degradation"
       known_reds:
         - "Use fake clocks in tests to avoid real 30/60/120 second waits."
       forbidden_moves:
@@ -148,8 +148,8 @@ slices:
         action: "Add 120-second persistent unavailable state."
         verify: "pytest backend/tests/test_mode_degradation.py -k unavailable_120s"
     design_refs:
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#D5"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#D5"
     write_scope:
       - "deadzone/backend/app/runtime/**"
       - "deadzone/backend/app/sources/**"
@@ -197,8 +197,8 @@ slices:
     operator_context:
       exact_inputs:
         - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/domain_exploration.md"
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#SensorNode"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/domain_exploration.md"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#SensorNode"
       known_reds:
         - "No Meshtastic field validation is required for MVP completion."
       forbidden_moves:
@@ -225,8 +225,8 @@ slices:
         verify: "pytest backend/tests/test_adapter_modes.py -k mesh"
     design_refs:
       - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#E5"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-6-inspect-topology"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#E5"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-6-inspect-topology"
     write_scope:
       - "deadzone/backend/app/sources/mesh.py"
       - "deadzone/backend/app/spatial/topology.py"

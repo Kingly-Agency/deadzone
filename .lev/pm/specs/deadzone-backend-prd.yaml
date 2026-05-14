@@ -30,7 +30,7 @@ source_map:
   ux_sources:
     - path: "deadzone/.lev/ux/20260514-101228-deadzone-mvp-prd/"
       role: "Earlier UX and PM handoff run; establishes dashboard-first constraint, aggregate payloads, and task bundle context."
-    - path: ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/"
+    - path: "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/"
       role: "Richer UX run; adds explicit Mock/Replay/Live/Mesh progression, interaction FSM, timing requirements, topology drill-down, reset, and degradation behavior."
 
 source_resolution:

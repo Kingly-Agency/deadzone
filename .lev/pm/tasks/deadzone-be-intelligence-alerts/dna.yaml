@@ -10,9 +10,9 @@ acceptance:
 local_refs:
   - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
   - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ia_schema.json"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ia_schema.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md"
 local_constraints:
   - "Backend owns aggregation; frontend renders already-computed intelligence."
   - "Never stream only raw RSSI packets to the UI."
@@ -23,7 +23,7 @@ source_context:
   refs:
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#backend_capabilities"
     - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml#intelligence_layer"
-    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#Data Display"
+    - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#Data Display"
   confidence: 0.93
   inferred_without_design_file: true
 execution_slice_map: "execution.yaml:slices"

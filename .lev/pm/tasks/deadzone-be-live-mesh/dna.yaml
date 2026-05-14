@@ -10,9 +10,9 @@ acceptance:
 local_refs:
   - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
   - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/domain_exploration.md"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/domain_exploration.md"
 local_constraints:
   - "Do not attempt production-grade RF capture in MVP."
   - "Do not fail backend startup when live adapter dependencies or permissions are absent."
@@ -23,8 +23,8 @@ source_context:
   refs:
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.live"
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mesh"
-    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
-    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#E5"
+    - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#gt-sensor-stream-stalled"
+    - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/user_and_agent_research.md#E5"
   confidence: 0.9
   inferred_without_design_file: true
 execution_slice_map: "execution.yaml:slices"

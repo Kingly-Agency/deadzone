@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 workstream: be-prd
 component: support-fe-build
 slug: combine-lev-context
@@ -21,9 +21,9 @@ canonical_refs: []
 **Workstream:** be-prd  
 **Component:** support-fe-build  
 **Session:** 1  
-**Status:** active
+**Status:** completed
 
-Combining existing `.lev/` context into execution-ready backend PRD/propose artifacts that support a frontend build.
+Combined existing `.lev/` context into a consolidated backend PRD YAML plus execution-ready `$propose` task artifacts that support a frontend build.
 
 ## Next Agent Brief
 
@@ -42,38 +42,30 @@ Combining existing `.lev/` context into execution-ready backend PRD/propose arti
 | # | File | Path | State | Canonical Ref | Decision | Next |
 |---|------|------|-------|---------------|----------|------|
 | 1 | .lev | .lev/ | captured | user objective | D1 | synthesize |
-| 2 | handoff | .lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md | created | work skill | D1 | keep updated |
+| 2 | handoff | .lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md | modified | work skill | D1 | complete |
 | 3 | DeadZone PM specs | deadzone/.lev/pm/specs/ | loaded | prior art | D2 | extend |
 | 4 | DeadZone agent plan | deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml | loaded | prior art | D2 | convert to propose |
 | 5 | DeadZone UX canonical run | deadzone/.lev/ux/20260514-101228-deadzone-mvp-prd/ | loaded | prior art | D2 | merge |
 | 6 | DeadZone richer UX run | .lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ | loaded | user objective | D2 | merge |
+| 7 | Consolidated backend PRD | deadzone/.lev/pm/specs/deadzone-backend-prd.yaml | created | D2 | D3 | use for exec |
+| 8 | Contract spine propose task | deadzone/.lev/pm/tasks/deadzone-be-contract-spine/ | created | PRD | D3 | exec-ready |
+| 9 | Intelligence/alerts propose task | deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/ | created | PRD | D3 | exec-ready |
+| 10 | Mock/replay propose task | deadzone/.lev/pm/tasks/deadzone-be-mock-replay/ | created | PRD | D3 | exec-ready |
+| 11 | Live/mesh propose task | deadzone/.lev/pm/tasks/deadzone-be-live-mesh/ | created | PRD | D3 | exec-ready |
 
 ## Roadmap To Goal
 
 **Goal**: Convert `.lev/` source context into backend PRD/propose artifacts for frontend build readiness.  
 **Done Condition**: Source inventory, prior-art report, requirement synthesis, and task artifacts/checklist are all backed by concrete file evidence.  
-**Remaining Steps**: 5
+**Remaining Steps**: 0
 
-### Step 1: Inventory and prior art
-- List `.lev/` files and directory structure.
-- Run required prior-art searches for backend PRD, replay, mock, real data, mesh, and FE build support.
-- Identify existing designs/specs/plans/tasks/decisions that should be extended instead of duplicated.
-- Exit when source candidates and gaps are explicit.
-
-#### Step 2: Synthesize backend requirement map
-- Combine replay, mock, real-data, and mesh sources into backend capability groups.
-- Map each capability to source refs, FE dependency, verifier, and unresolved gaps.
-
-#### Step 3: Emit or update propose artifacts
-- Create execution-ready task folders only if `$propose` gates pass.
-- Otherwise, capture the smallest alignment question or blocked-input list.
-
-#### Step 4: Completion audit
-- Map objective requirements to files and command evidence.
-- Verify emitted artifacts cover every requirement, not just proxy manifests.
-
-#### Step 5: Close handoff
-- Update session state, decisions, timeline, and next actions.
+### Step 1: Inventory, synthesize, emit, audit
+- Completed `.lev/` inventory and prior-art scan.
+- Resolved canonical PM home to `deadzone/.lev`.
+- Created `deadzone/.lev/pm/specs/deadzone-backend-prd.yaml`.
+- Created four `$propose` task folders with `dna.yaml` and `execution.yaml`.
+- Validated YAML syntax and `$propose` structural fields.
+- Completion audit found no missing objective requirements.
 
 ## Handoff Objective
 
@@ -93,6 +85,36 @@ Maintain a deterministic trail while combining `.lev/` source material into back
 **Progress:** Session tracking is initialized; next action is `.lev/` inventory and prior art.  
 **Next Steps:** Inspect `.lev/`, run prior-art searches, then update this handoff with findings.
 
+### ⚡ CHECKPOINT 2 — Prior Art And Source Set Resolved
+
+**Current State:** Canonical backend PM artifacts were found under `deadzone/.lev`, while `.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/` supplied the richer UX progression inside the DeadZone tree.  
+**Context:** The user asked to combine all `.lev/` information for backend PRD/propose artifacts supporting FE work.  
+**Files Loaded:** `deadzone/.lev/pm/specs/deadzone-backend-scope.yaml`, `deadzone/.lev/pm/specs/deadzone-api-contract.yaml`, `deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json`, `deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml`, `deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml`, `deadzone/.lev/ux/20260514-101228-deadzone-mvp-prd/constraint_bundle.yaml`, `deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/*`  
+**Files Modified:** `deadzone/.lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md` updated.  
+**Understanding:** Existing PM artifacts already define the FE/BE boundary; the newer UX run adds missing reset, mode switch, raw event tail, richer Replay, Live, and Mesh behavior.  
+**Progress:** Decided to extend `deadzone/.lev` rather than creating a competing root PM tree.  
+**Next Steps:** Emit YAML PRD and `$propose` artifacts.
+
+### ⚡ CHECKPOINT 3 — PRD And Propose Artifacts Created
+
+**Current State:** Full backend PRD and four execution-ready `$propose` task folders exist.  
+**Context:** Work is planning/proposal scope only; no backend/frontend implementation was requested in this turn.  
+**Files Loaded:** All source files named in Checkpoint 2 plus `/Users/jean-patricksmith/.agents/skills/propose/SKILL.md`.  
+**Files Modified:** `deadzone/.lev/pm/specs/deadzone-backend-prd.yaml`, `deadzone/.lev/pm/tasks/deadzone-be-contract-spine/{dna.yaml,execution.yaml}`, `deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/{dna.yaml,execution.yaml}`, `deadzone/.lev/pm/tasks/deadzone-be-mock-replay/{dna.yaml,execution.yaml}`, `deadzone/.lev/pm/tasks/deadzone-be-live-mesh/{dna.yaml,execution.yaml}`, `deadzone/.lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md`.  
+**Understanding:** The backend PRD is split into contract spine, intelligence/alerts, mock/replay, and live/mesh tasks because those map cleanly to FE build dependencies and avoid one oversized execution unit.  
+**Progress:** YAML parse validation passed for all nine created YAML artifacts; structural `$propose` validation passed for 4 task folders and 10 slices.  
+**Next Steps:** Execute the task folders when implementation begins.
+
+### ⚡ CHECKPOINT 4 — Completion Audit
+
+**Current State:** Objective satisfied by artifact evidence.  
+**Context:** Audit mapped explicit prompt requirements to concrete files and validation commands.  
+**Files Loaded:** `deadzone/.lev/pm/specs/deadzone-backend-prd.yaml`, all `deadzone/.lev/pm/tasks/*/{dna.yaml,execution.yaml}` files.  
+**Files Modified:** `deadzone/.lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md`.  
+**Understanding:** The artifacts cover all required modes: Mock, Replay, Live/real-data adapters, and Mesh, plus FE contract needs and verifiers.  
+**Progress:** No uncovered requirement remains. Git status could not be reported because neither `incubator` nor `deadzone` is a git repository.  
+**Next Steps:** Mark active thread goal complete.
+
 ## Timeline
 
 | Time | Checkpoint |
@@ -100,6 +122,8 @@ Maintain a deterministic trail while combining `.lev/` source material into back
 | T+0 | Session start — objective and skill instructions loaded |
 | T+1 | Handoff created and entity matrix seeded |
 | T+2 | Prior art found canonical DeadZone PM/UX artifacts under `deadzone/.lev/` |
+| T+3 | Consolidated backend PRD and four propose task folders created |
+| T+4 | YAML and `$propose` structural validation passed |
 
 ## Decisions Log
 
@@ -123,7 +147,7 @@ Maintain a deterministic trail while combining `.lev/` source material into back
 **Follow-up Required:**
 - [x] Inventory `.lev/`.
 - [x] Run prior-art searches.
-- [ ] Score readiness for `$propose` artifact emission.
+- [x] Score readiness for `$propose` artifact emission.
 
 ### D2: Extend `deadzone/.lev` as canonical PM home
 
@@ -143,8 +167,29 @@ Maintain a deterministic trail while combining `.lev/` source material into back
 **Promotion:** stay in handoff
 
 **Follow-up Required:**
-- [ ] Emit `dna.yaml` and `execution.yaml` artifacts.
-- [ ] Audit coverage against both UX runs and existing PM specs.
+- [x] Emit `dna.yaml` and `execution.yaml` artifacts.
+- [x] Audit coverage against both UX runs and existing PM specs.
+
+### D3: Split backend PRD into four execution-ready propose tasks
+
+**When:** 2026-05-14  
+**Context:** The combined source set spans FE/BE contract, aggregate intelligence, mock/replay demo path, and live/mesh credibility path.  
+**Decision:** Emit four task folders: `deadzone-be-contract-spine`, `deadzone-be-intelligence-alerts`, `deadzone-be-mock-replay`, and `deadzone-be-live-mesh`.  
+**Rationale:** These are independent enough for execution routing while still covering the full backend PRD. Each folder has `dna.yaml`, `execution.yaml`, verifier commands, write scopes, constraints, and cold-start context.  
+**Impact:** Implementation agents can execute the backend in contract-first order and the frontend partner has a stable PRD/contract target.  
+**Code Refs:** `deadzone/.lev/pm/specs/deadzone-backend-prd.yaml`, `deadzone/.lev/pm/tasks/deadzone-be-contract-spine/execution.yaml`, `deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/execution.yaml`, `deadzone/.lev/pm/tasks/deadzone-be-mock-replay/execution.yaml`, `deadzone/.lev/pm/tasks/deadzone-be-live-mesh/execution.yaml`  
+**Canonical Ref:** `deadzone/.lev/pm/specs/deadzone-backend-prd.yaml`
+
+**Alternatives Considered:**
+- One umbrella execution task: rejected because it would mix contract, source engines, and live adapters into a cold-start-hostile unit.
+- A markdown PRD only: rejected because it would not satisfy `$propose` artifact requirements and local markdown restrictions.
+- Chosen option: YAML PRD plus four `$propose` folders.
+
+**Promotion:** stay in handoff
+
+**Follow-up Required:**
+- [x] Validate YAML parsing.
+- [x] Validate required `$propose` structural fields.
 
 ## Code Context
 
@@ -152,13 +197,22 @@ Maintain a deterministic trail while combining `.lev/` source material into back
 
 | File | Change Type | Lines | Status | Notes |
 |------|-------------|-------|--------|-------|
-| .lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md | added | +120 | in_progress | Required session handoff |
+| .lev/pm/handoffs/20260514-be-prd-support-fe-build-session-1.md | added/modified | ~230 | complete | Required session handoff |
+| deadzone/.lev/pm/specs/deadzone-backend-prd.yaml | added | ~200 | complete | Consolidated backend PRD and source map |
+| deadzone/.lev/pm/tasks/deadzone-be-contract-spine/dna.yaml | added | ~45 | complete | Contract-spine task DNA |
+| deadzone/.lev/pm/tasks/deadzone-be-contract-spine/execution.yaml | added | ~180 | complete | Contract-spine execution plan |
+| deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/dna.yaml | added | ~40 | complete | Intelligence/alerts task DNA |
+| deadzone/.lev/pm/tasks/deadzone-be-intelligence-alerts/execution.yaml | added | ~175 | complete | Intelligence/alerts execution plan |
+| deadzone/.lev/pm/tasks/deadzone-be-mock-replay/dna.yaml | added | ~45 | complete | Mock/replay task DNA |
+| deadzone/.lev/pm/tasks/deadzone-be-mock-replay/execution.yaml | added | ~250 | complete | Mock/replay execution plan |
+| deadzone/.lev/pm/tasks/deadzone-be-live-mesh/dna.yaml | added | ~42 | complete | Live/mesh task DNA |
+| deadzone/.lev/pm/tasks/deadzone-be-live-mesh/execution.yaml | added | ~250 | complete | Live/mesh execution plan |
 
 **Total Changes:**
-- Files added: 1
-- Files modified: 0
+- Files added: 9
+- Files modified: 1
 - Files deleted: 0
-- Lines changed: +120 / -0
+- Lines changed: planning artifacts only
 
 ### Files Loaded Into Context
 
@@ -176,10 +230,9 @@ Maintain a deterministic trail while combining `.lev/` source material into back
 
 ### Immediate (Next Session)
 
-1. Does `.lev/` contain enough backend-specific source context to auto-emit execution-ready artifacts?
-2. Which FE build expectations should be treated as canonical if `.lev/` has conflicting UX/product notes?
+1. None for this objective; execution can start from `deadzone/.lev/pm/tasks/deadzone-be-contract-spine/`.
 
 ### Short-term (This Week)
 
-1. Should the backend PRD become a dedicated spec/design artifact if the markdown ban is explicitly waived?
-2. Which implementation repo owns the backend once the PRD/propose artifacts are ready?
+1. Implement the contract spine first, then intelligence/alerts, mock/replay, and live/mesh.
+2. Add a git boundary before close/sync workflows, because `incubator` and `deadzone` are not git repositories.

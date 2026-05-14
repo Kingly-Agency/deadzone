@@ -11,9 +11,9 @@ local_refs:
   - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml"
   - "deadzone/.lev/pm/specs/deadzone-backend-scope.yaml"
   - "deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/wireframes.md"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/wireframes.md"
 local_constraints:
   - "Mock and Replay are hardware-free and cross-platform."
   - "Payload shape must remain identical across Mock, Replay, Live, and Mesh where objects overlap."
@@ -24,8 +24,8 @@ source_context:
   refs:
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.mock"
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#modes.replay"
-    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-4-trigger-replay-scenario"
-    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-alerts-panel"
+    - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-4-trigger-replay-scenario"
+    - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json#screen-alerts-panel"
   confidence: 0.96
   inferred_without_design_file: true
 execution_slice_map: "execution.yaml:slices"

@@ -121,8 +121,8 @@ slices:
       - "Raw event tail omits stable identifiers and includes timestamp, sensor_id, RSSI bucket or value, device_type, and zone_id."
     operator_context:
       exact_inputs:
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md"
         - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract.required_additions_to_existing_contract"
       known_reds:
         - "If the backend app is not scaffolded, implement this after contract-01."
@@ -150,9 +150,9 @@ slices:
         action: "Constrain raw event tail to privacy-safe summaries."
         verify: "pytest backend/tests/test_sensor_event_tail.py"
     design_refs:
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-2-switch-mode"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-6-inspect-topology"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-7-reset-demo"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-2-switch-mode"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-6-inspect-topology"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json#task-7-reset-demo"
     write_scope:
       - "deadzone/backend/app/api/**"
       - "deadzone/backend/app/domain/**"

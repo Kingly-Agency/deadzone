@@ -69,8 +69,8 @@ slices:
         verify: "pytest backend/tests/test_aggregate_snapshot.py -k snapshot"
     design_refs:
       - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract.required_snapshot_objects"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#MetricsBar"
-      - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#HeatmapLayer"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#MetricsBar"
+      - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md#HeatmapLayer"
     write_scope:
       - "deadzone/backend/app/spatial/**"
       - "deadzone/backend/app/domain/**"
@@ -117,8 +117,8 @@ slices:
       - "Sensor offline state remains visible instead of removing the node."
     operator_context:
       exact_inputs:
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json task-5 and task-6"
-        - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md SensorNode, CoverageGapHatch, AlertListItem, RawEventTail"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json task-5 and task-6"
+        - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/components.md SensorNode, CoverageGapHatch, AlertListItem, RawEventTail"
       known_reds:
         - "Alert acknowledge is visual/local in MVP unless a separate persistence task is introduced."
       forbidden_moves:

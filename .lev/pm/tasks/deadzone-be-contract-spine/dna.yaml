@@ -13,8 +13,8 @@ local_refs:
   - "deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json"
   - "deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml"
   - "deadzone/.lev/pm/plans/deadzone-agent-task-bundle.yaml"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ia_schema.json"
-  - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ia_schema.json"
+  - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/interaction_fsm.json"
 local_constraints:
   - "Do not expose raw MAC addresses, stable device identifiers, or attendee-level identity data."
   - "Do not let frontend invent fields outside the contract."
@@ -27,7 +27,7 @@ source_context:
     - "deadzone/.lev/pm/specs/deadzone-backend-prd.yaml#frontend_dependency_contract"
     - "deadzone/.lev/pm/specs/deadzone-api-contract.yaml#paths"
     - "deadzone/.lev/pm/specs/deadzone-event-envelope.schema.json"
-    - ".lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
+    - "deadzone/.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/task_graph.json"
   confidence: 0.95
   inferred_without_design_file: true
 execution_slice_map: "execution.yaml:slices"
