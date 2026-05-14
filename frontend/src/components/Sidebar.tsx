@@ -1,21 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useStore } from "../store";
-
-function getInitialTheme(): "dark" | "light" {
-  if (typeof window === "undefined") return "dark";
-  const saved = window.localStorage.getItem("deadzone-theme");
-  if (saved === "light" || saved === "dark") return saved;
-  return "dark";
-}
-
-function useTheme(): ["dark" | "light", () => void] {
-  const [theme, setTheme] = useState<"dark" | "light">(() => getInitialTheme());
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    window.localStorage.setItem("deadzone-theme", theme);
-  }, [theme]);
-  return [theme, () => setTheme((t) => (t === "dark" ? "light" : "dark"))];
-}
 
 export function Sidebar({
   collapsed,
@@ -24,6 +8,8 @@ export function Sidebar({
   onZoneClick,
   activeSection,
   onSectionChange,
+  isDrawerMode,
+  onNavItemClick,
 }: {
   collapsed: boolean;
   onToggle: () => void;
@@ -31,10 +17,11 @@ export function Sidebar({
   onZoneClick: (zoneId: string) => void;
   activeSection: string;
   onSectionChange: (section: string) => void;
+  isDrawerMode: boolean;
+  onNavItemClick: () => void;
 }) {
-  const { snapshot, reset } = useStore();
+  const { snapshot, config } = useStore();
   const [areasOpen, setAreasOpen] = useState(true);
-  const [theme, toggleTheme] = useTheme();
 
   const zones = snapshot?.venue.zones ?? [];
   const zoneAggs = snapshot?.zones ?? [];
@@ -42,37 +29,63 @@ export function Sidebar({
   const sensorCount = snapshot?.sensors.length ?? 0;
   const isReplay = snapshot?.stream.mode === "replay";
 
+  // When in drawer mode, clicking a nav item also closes the drawer
+  const handleSectionChange = (section: string) => {
+    onSectionChange(section);
+    if (isDrawerMode) onNavItemClick();
+  };
+
+  const handleZoneClick = (zoneId: string) => {
+    onZoneClick(zoneId);
+    if (isDrawerMode) onNavItemClick();
+  };
+
   return (
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""}`}>
-      <div className="m-stripe-divider" aria-hidden="true" />
-
+      {/* Brand */}
       <div className="sidebar-brand">
         <div className="sidebar-logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-            <rect width="28" height="28" rx="0" fill="#000" />
-            <path d="M8 14L14 8L20 14L14 20Z" fill="#fff" />
-            <path d="M11 14L14 11L17 14L14 17Z" fill="#e22718" />
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="8" fill="url(#logoGrad)" />
+            <path d="M8 14L14 8L20 14L14 20Z" fill="white" fillOpacity="0.9" />
+            <path d="M11 14L14 11L17 14L14 17Z" fill="url(#logoGrad)" />
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="28" y2="28">
+                <stop stopColor="#6366F1" />
+                <stop offset="1" stopColor="#8B5CF6" />
+              </linearGradient>
+            </defs>
           </svg>
           {!collapsed && <span className="sidebar-brand-text">DeadZone</span>}
         </div>
-        <button className="sidebar-toggle" onClick={onToggle} aria-label="Toggle sidebar">
-          {collapsed ? "›" : "‹"}
+        <button
+          className="sidebar-toggle"
+          onClick={onToggle}
+          aria-label={isDrawerMode ? "Close navigation" : collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={isDrawerMode ? true : !collapsed}
+        >
+          {isDrawerMode ? "✕" : collapsed ? "›" : "‹"}
         </button>
       </div>
 
+      {/* Navigation */}
       <nav className="sidebar-nav">
         <button
           className={`sidebar-item ${activeSection === "dashboard" ? "sidebar-item--active" : ""}`}
-          onClick={() => onSectionChange("dashboard")}
+          onClick={() => handleSectionChange("dashboard")}
           title="Dashboard"
         >
           <span className="sidebar-icon">📊</span>
           {!collapsed && <span className="sidebar-label">Dashboard</span>}
         </button>
 
+        {/* Areas section */}
         <button
           className={`sidebar-item ${activeSection === "areas" ? "sidebar-item--active" : ""}`}
-          onClick={() => { onSectionChange("areas"); if (!collapsed) setAreasOpen(!areasOpen); }}
+          onClick={() => {
+            onSectionChange("areas");
+            if (!collapsed) setAreasOpen(!areasOpen);
+          }}
           title="Areas"
         >
           <span className="sidebar-icon">📍</span>
@@ -95,12 +108,16 @@ export function Sidebar({
                 <button
                   key={z.id}
                   className={`sidebar-zone ${isSelected ? "sidebar-zone--selected" : ""}`}
-                  onClick={() => onZoneClick(z.id)}
+                  onClick={() => handleZoneClick(z.id)}
                   title={`${z.name} — ${density}% density`}
                 >
-                  <span className="sidebar-zone-dot" style={{
-                    background: density > 75 ? "var(--m-red)" : density > 40 ? "var(--warning)" : "var(--success)"
-                  }} />
+                  <span
+                    className="sidebar-zone-dot"
+                    style={{
+                      background:
+                        density > 75 ? "#EF4444" : density > 40 ? "#F59E0B" : "#22C55E",
+                    }}
+                  />
                   <span className="sidebar-zone-name">{z.name}</span>
                   <span className="sidebar-zone-pct">{density}%</span>
                 </button>
@@ -111,7 +128,7 @@ export function Sidebar({
 
         <button
           className={`sidebar-item ${activeSection === "heatmap" ? "sidebar-item--active" : ""}`}
-          onClick={() => onSectionChange("heatmap")}
+          onClick={() => handleSectionChange("heatmap")}
           title="Heatmap"
         >
           <span className="sidebar-icon">🔥</span>
@@ -120,14 +137,16 @@ export function Sidebar({
 
         <button
           className={`sidebar-item ${activeSection === "alerts" ? "sidebar-item--active" : ""}`}
-          onClick={() => onSectionChange("alerts")}
+          onClick={() => handleSectionChange("alerts")}
           title="Alerts"
         >
           <span className="sidebar-icon">🔔</span>
           {!collapsed && (
             <>
               <span className="sidebar-label">Alerts</span>
-              {alertCount > 0 && <span className="sidebar-alert-badge">{alertCount}</span>}
+              {alertCount > 0 && (
+                <span className="sidebar-alert-badge">{alertCount}</span>
+              )}
             </>
           )}
           {collapsed && alertCount > 0 && <span className="sidebar-alert-pip" />}
@@ -135,7 +154,7 @@ export function Sidebar({
 
         <button
           className={`sidebar-item ${activeSection === "sensors" ? "sidebar-item--active" : ""}`}
-          onClick={() => onSectionChange("sensors")}
+          onClick={() => handleSectionChange("sensors")}
           title="Sensors"
         >
           <span className="sidebar-icon">📡</span>
@@ -150,60 +169,27 @@ export function Sidebar({
         {isReplay && (
           <button
             className={`sidebar-item ${activeSection === "replay" ? "sidebar-item--active" : ""}`}
-            onClick={() => onSectionChange("replay")}
+            onClick={() => handleSectionChange("replay")}
             title="Replay"
           >
             <span className="sidebar-icon">⏮</span>
             {!collapsed && <span className="sidebar-label">Replay</span>}
           </button>
         )}
-
-        <button
-          className={`sidebar-item ${activeSection === "mesh" ? "sidebar-item--active" : ""}`}
-          onClick={() => onSectionChange("mesh")}
-          title="Mesh"
-        >
-          <span className="sidebar-icon">⌬</span>
-          {!collapsed && <span className="sidebar-label">Mesh</span>}
-        </button>
-
-        <button
-          className={`sidebar-item ${activeSection === "configuration" ? "sidebar-item--active" : ""}`}
-          onClick={() => onSectionChange("configuration")}
-          title="Configuration"
-        >
-          <span className="sidebar-icon">⚙︎</span>
-          {!collapsed && <span className="sidebar-label">Configuration</span>}
-        </button>
       </nav>
 
+      {/* Bottom status */}
       <div className="sidebar-footer">
-        <button
-          type="button"
-          className="sidebar-item"
-          onClick={() => reset()}
-          title="Reset demo (R)"
-          aria-label="Reset demo"
-        >
-          <span className="sidebar-icon">↺</span>
-          {!collapsed && <span className="sidebar-label">Reset</span>}
-        </button>
-        <button
-          type="button"
-          className="sidebar-theme-toggle"
-          onClick={toggleTheme}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          <span className="sidebar-theme-toggle-icon" aria-hidden="true">
-            {theme === "dark" ? "☀" : "☾"}
-          </span>
+        <div className="sidebar-status">
+          <span className={`sidebar-conn-dot ${snapshot ? "online" : "offline"}`} />
           {!collapsed && (
-            <span className="sidebar-theme-toggle-label">
-              {theme === "dark" ? "Light mode" : "Dark mode"}
+            <span className="sidebar-conn-text">
+              {snapshot
+                ? (config?.active_mode?.toUpperCase() ?? "CONNECTED")
+                : "Connecting…"}
             </span>
           )}
-        </button>
+        </div>
       </div>
     </aside>
   );

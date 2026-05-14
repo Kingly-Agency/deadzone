@@ -731,6 +731,7 @@ button.config-mode-option {
 .main-content {
   display: grid;
   grid-template-columns: 1fr 380px;
+  grid-template-rows: 1fr;
   gap: var(--gap-xl);
   padding: 0 var(--gap-xl) var(--gap-xl);
   flex: 1;
@@ -745,6 +746,7 @@ button.config-mode-option {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 480px;
 }
 
 /* ── Venue Map ────────────────────────────────────────────────────── */
@@ -1553,6 +1555,7 @@ button.config-mode-option {
 @media (max-width: 1099px) {
   .main-content {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -1811,4 +1814,323 @@ button[aria-label="Toggle sidebar"],
   .header { padding: 0 var(--space-sm); gap: var(--space-xs); }
   .header-search { display: none; }
   .breadcrumb { font-size: 12px; }
+}
+
+/* Header theme toggle — square, aspect-ratio guaranteed */
+.header-theme-toggle {
+  width: 36px;
+  height: 36px;
+  aspect-ratio: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: transparent;
+  color: var(--on-dark);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-none);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.header-theme-toggle:hover { border-color: var(--on-dark); }
+
+/* Re-add M-stripe to the sidebar via ::before pseudo since concurrent edit removed it from JSX */
+.sidebar::before {
+  content: "";
+  display: block;
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--m-blue-light) 0%,
+    var(--m-blue-light) 33.33%,
+    var(--m-mesh) 33.33%,
+    var(--m-mesh) 66.66%,
+    var(--m-red) 66.66%,
+    var(--m-red) 100%
+  );
+  flex-shrink: 0;
+}
+
+
+/* ==========================================================================
+   RESPONSIVE
+   Breakpoints:
+     mobile  : ≤640px
+     tablet  : 641–1024px
+     desktop : ≥1025px   (existing styles above target this)
+     wide    : ≥1440px   (optional refinements)
+   ========================================================================== */
+
+/* ── Zone grid — CSS-controlled columns (replaces inline styles) ─────────── */
+.zone-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  gap: var(--gap-lg);
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+/* ── Drawer primitive ────────────────────────────────────────────────────── */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.5);
+  animation: scrim-fade 0.2s ease forwards;
+}
+
+@keyframes scrim-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  background: var(--surface);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.drawer--left {
+  left: 0;
+  border-right: 1px solid var(--border);
+  animation: drawer-from-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.drawer--right {
+  right: 0;
+  border-left: 1px solid var(--border);
+  animation: drawer-from-right 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes drawer-from-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes drawer-from-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* Sidebar inside left drawer: full width, no right border */
+.drawer .sidebar {
+  width: 100% !important;
+  border-right: none;
+  flex: 1;
+}
+
+/* Right drawer inner scroll area */
+.drawer-inner {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Right drawer: alerts-panel / zone-drawer fill the container */
+.drawer-inner .alerts-panel,
+.drawer-inner .zone-drawer {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 1;
+}
+
+/* ── Header: hamburger button (hidden on desktop) ────────────────────────── */
+.header-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.header-menu-btn:hover { background: var(--surface-2); color: var(--text); }
+
+/* ── Wide desktop (≥1440px) ────────────────────────────────────────────────── */
+@media (min-width: 1440px) {
+  .header         { padding: 0 32px; }
+  .metrics-bar    { padding: var(--gap-lg) 32px; }
+  .main-content   { padding: 0 32px 32px; gap: 28px; }
+}
+
+/* ── Tablet (641–1024px) ────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  /* Show hamburger button */
+  .header-menu-btn { display: flex; }
+
+  /* Sidebar: removed from layout flow — accessed via Drawer in JS */
+
+  /* Header: tighten padding */
+  .header { padding: 0 var(--gap-md); gap: var(--gap-sm); }
+
+  /* Breadcrumb: show only the final segment */
+  .breadcrumb-item,
+  .breadcrumb-sep { display: none; }
+
+  /* Search: narrower */
+  .header-search { width: 180px; }
+
+  /* Right cluster: tighter gap */
+  .header-right { gap: var(--gap-sm); }
+
+  /* Touch targets ≥44px */
+  .header-btn,
+  .header-bell    { min-height: 44px; min-width: 44px; padding: 0 10px; }
+  .sidebar-item   { min-height: 44px; }
+  .sidebar-zone   { min-height: 44px; }
+  .replay-btn     { min-height: 44px; }
+  .speed-btn      { min-height: 44px; padding: 0 10px; }
+  .alert-btn      { min-height: 44px; padding: 0 14px; }
+
+  /* Metrics: 3 cards per row */
+  .metrics-bar { grid-template-columns: repeat(3, 1fr); }
+
+  /* Main content: single column (right panel moved to Drawer) */
+  .main-content { grid-template-columns: 1fr; }
+}
+
+/* ── Mobile (≤640px) ────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* ── Header ── */
+  .header {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    padding: var(--gap-sm) var(--gap-md);
+    gap: var(--gap-sm);
+  }
+
+  /* Hide search bar on mobile — secondary feature on small screens */
+  .header-center { display: none; }
+
+  /* Breadcrumb: hidden */
+  .breadcrumb { display: none; }
+
+  /* Reset button: hidden on mobile (accessible via R key) */
+  .header-btn--reset { display: none; }
+
+  /* Mode chip: show dot + truncated label */
+  .mode-chip { padding: 6px 10px; font-size: 11px; }
+  .mode-chip-label { display: none; }
+
+  /* ── Metrics: horizontal scroll strip ── */
+  .metrics-bar {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: var(--gap-sm);
+    padding: var(--gap-sm) var(--gap-md);
+    scrollbar-width: none;
+  }
+  .metrics-bar::-webkit-scrollbar { display: none; }
+
+  .metric-card {
+    flex-shrink: 0;
+    width: 138px;
+    scroll-snap-align: start;
+    border-radius: var(--radius-sm);
+  }
+  .metric-value { font-size: 20px; }
+
+  /* ── Main content: single column, no padding (edge-to-edge canvas) ── */
+  .main-content {
+    grid-template-columns: 1fr;
+    padding: 0;
+    gap: 0;
+  }
+
+  /* Canvas wrap: edge-to-edge (full bleed), min 60vh */
+  .canvas-wrap {
+    border-radius: 0;
+    min-height: 60vh;
+  }
+
+  /* VenueMap: min usable height */
+  .venue-map { min-height: 60vh; }
+
+  /* Zone grid: 2 columns on mobile */
+  .zone-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+  }
+
+  /* ── Replay controls: compact ── */
+  .replay-bar {
+    padding: var(--gap-sm) var(--gap-md);
+    border-radius: 0;
+  }
+  .scenario-picker { grid-template-columns: repeat(2, 1fr); }
+  .replay-controls { flex-wrap: wrap; gap: var(--gap-sm); }
+  /* Scrubber drops to its own row on mobile */
+  .scrubber { margin: 0; order: 10; flex-basis: 100%; }
+
+  /* ── AlertToast: bottom-anchored, avoids map zoom controls ── */
+  .toast-container {
+    top: auto;
+    bottom: 80px;
+    left: var(--gap-md);
+    right: var(--gap-md);
+  }
+  .toast { width: 100%; }
+
+  /* ── Footer: compact single line ── */
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--gap-sm) var(--gap-md);
+    font-size: 11px;
+  }
+  .footer-center { display: none; }
+}
+
+/* ── prefers-reduced-motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Drawer: replace slide with fade */
+  .drawer--left,
+  .drawer--right {
+    animation: scrim-fade 0.15s ease forwards;
+  }
+
+  /* Remove all micro-interaction transitions */
+  .sidebar,
+  .zone-card,
+  .metric-card,
+  .mode-chip,
+  .alert-item,
+  .replay-btn,
+  .header-btn,
+  .sidebar-item {
+    transition: none;
+  }
+
+  .zone-bar-fill,
+  .scrubber-fill,
+  .heatmap-zone-fill,
+  .zone-drawer {
+    transition: none;
+    animation: none;
+  }
+
+  .skeleton-block { animation: none; background: var(--surface-3); }
 }

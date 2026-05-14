@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useStore } from "../store";
 import type { ZoneAggregate } from "../types";
 
@@ -24,12 +25,44 @@ export function VenueMap({
   onZoneClick: (zoneId: string) => void;
 }) {
   const { snapshot } = useStore();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // ResizeObserver: invalidates Leaflet map size on container resize.
+  // Currently the map is a CSS grid; this hook is wired for future Leaflet integration
+  // and also handles any layout reflows (e.g. sidebar drawer open/close).
+  useEffect(() => {
+    const el = mapContainerRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      // Future Leaflet: mapRef.current?.invalidateSize();
+      // Dispatch a synthetic resize so any embedded Leaflet instance recalculates
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   if (!snapshot) {
     return (
-      <div className="venue-map" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        className="venue-map"
+        ref={mapContainerRef}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
         <div className="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, marginBottom: 12, color: "var(--text-dim)" }}>
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ opacity: 0.5, marginBottom: 12, color: "var(--text-dim)" }}
+          >
             <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
             <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
             <path d="M12 2v2" />
@@ -51,7 +84,8 @@ export function VenueMap({
   const zoneMap = new Map(zones.map((z) => [z.zone_id, z]));
 
   return (
-    <div className="venue-map">
+    <div className="venue-map" ref={mapContainerRef}>
+      {/* Grid columns/rows are now controlled by CSS (responsive) */}
       <div className="zone-grid">
         {venue.zones.map((vz) => {
           const z = zoneMap.get(vz.id);
@@ -68,7 +102,7 @@ export function VenueMap({
         })}
       </div>
 
-      {/* Legend */}
+      {/* Density legend */}
       <div className="legend">
         <span>density</span>
         <div className="legend-ramp">
@@ -102,12 +136,16 @@ function ZoneCard({
       onClick={onClick}
       role="button"
       tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       aria-label={`${name}: ${zone.estimated_devices} devices, ${Math.round(pct * 100)}% density`}
+      aria-pressed={selected}
     >
       <div className="zone-accent" style={{ background: color }} />
       <div className="zone-header">
         <span className="zone-name">{name}</span>
-        <span className="zone-trend" style={{ color }}>{TREND_ARROWS[zone.trend] ?? "→"}</span>
+        <span className="zone-trend" style={{ color }}>
+          {TREND_ARROWS[zone.trend] ?? "→"}
+        </span>
       </div>
 
       <div className="zone-stats">
@@ -121,7 +159,10 @@ function ZoneCard({
         </div>
         <div className="zone-stat">
           <div className="zone-stat-label">Pressure</div>
-          <div className="zone-stat-value" style={{ color: zone.pressure_score > 0.7 ? "var(--severity-critical)" : "inherit" }}>
+          <div
+            className="zone-stat-value"
+            style={{ color: zone.pressure_score > 0.7 ? "var(--severity-critical)" : "inherit" }}
+          >
             {Math.round(zone.pressure_score * 100)}%
           </div>
         </div>
