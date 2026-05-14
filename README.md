@@ -4,67 +4,66 @@
 
 DeadZone is an observability layer for physical spaces. Live crowd density, movement flow, congestion zones, and dead Wi-Fi areas — without attendee apps, accounts, QR codes, or interaction. Passive RF sensing only.
 
-## Quick Start
+## Features
 
-```bash
-npm run dev
-```
-
-Run this from the repo root. It starts the BLE-first FastAPI backend on <http://127.0.0.1:8000>, waits for it to become healthy, then starts the Vite dashboard on <http://127.0.0.1:3000>.
-
-Then open <http://127.0.0.1:3000>. The dashboard defaults to `BLE/LIVE`; the only selectable modes are `BLE/LIVE` and `MOCK`.
-
-## Modes
-
-| Mode | Badge | What it does | Use when |
-|------|-------|--------------|----------|
-| **Mock** | blue | Deterministic synthetic stream. Default on first load. | Hackathon judging, rehearsal, CVD color check |
-| **Replay** | amber | Recorded real event streams (concert exit, hallway, stadium ingress) | Skeptic judge wants to see real data shape |
-| **Live** | green | BLE/Wi-Fi sensing on the host laptop (best-effort cross-platform) | Strong demo bonus; degrades to Replay if stream stalls |
-| **Mesh** | violet | Multi-node Meshtastic LoRa relay | Outdoor / no-Wi-Fi venues (stretch) |
-
-Provenance badge is persistent and unmissable — honest data labeling is the engineering-maturity signal.
+- **Spatial Intelligence**: Real-time visual heatmaps and drifting device-level particles overlaid on venue floor plans.
+- **Multi-Mode Engine**: 
+  - `Mock`: Synthetic event generation for guaranteed, repeatable demos.
+  - `Replay`: Playback recorded, high-density traffic scenarios (like a stadium ingress or concert exit).
+  - `Live (BLE)`: Real-time Bluetooth Low Energy passive scanning and telemetry rendering.
+  - `Mesh`: Integration with LoRa relays (Meshtastic) for outdoor or no-Wi-Fi venues.
+- **Live Device Telemetry**: Granular observation of sensed MAC hashes, RSSI values, and zone assignments via a WebSocket-powered event stream.
+- **Alerting & Diagnostics**: Automated alerts based on density thresholds and real-time mesh link quality.
 
 ## Architecture
 
-```
-┌────────────────┐   ┌────────────────┐   ┌────────────────┐
-│ Sensor sources │──▶│   FastAPI BE   │──▶│  React FE      │
-│ Mock/Replay/   │   │  + WebSocket   │   │  Leaflet +     │
-│ BLE/Wi-Fi/Mesh │   │  /ws/events    │   │  Heatmap.js    │
-└────────────────┘   └────────────────┘   └────────────────┘
-```
-
-- **Backend**: Python 3.11, FastAPI, asyncio, WebSockets, Bleak (BLE), Scapy (Wi-Fi passive), Meshtastic Python SDK
-- **Frontend**: React + Vite + TypeScript, Leaflet for floorplans, Heatmap.js for density
-- **Infrastructure**: Docker Compose (single command up)
-
-## Repo Layout
-
-```
-backend/                   FastAPI + WebSocket server
-frontend/                  Vite + React + Leaflet dashboard
-docker-compose.yml         One-command dev orchestration
-.lev/
-├── pm/
-│   ├── specs/             Backend PRD, API contract, event envelope schema, FE partner brief
-│   ├── plans/             Agent task bundle
-│   ├── tasks/             Tracked work (4 backend tasks with dna.yaml + execution.yaml)
-│   └── handoffs/          Session continuity (BE, FE, scope workstreams)
-└── ux/
-    ├── 20260514-101228-deadzone-mvp-prd/         Initial UX exploration
-    └── 20260514-101706-deadzone-mvp-crowd-intel/ Full 7-step UX pipeline + wireframes
+```mermaid
+graph LR
+    A[Sensor Sources] --> B[FastAPI Engine]
+    B -->|REST & WebSockets| C[React Frontend]
+    
+    subgraph Frontend
+    C1[Spatial Map Canvas]
+    C2[Device Event Table]
+    C3[Metrics Bar]
+    C --> C1 & C2 & C3
+    end
+    
+    subgraph Backend
+    B1[BLE Scanner]
+    B2[Mock Generator]
+    B3[Replay Controller]
+    B1 & B2 & B3 --> B
+    end
 ```
 
-See [`.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/summary.md`](.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/summary.md) for the design intent and [`.lev/pm/specs/deadzone-api-contract.yaml`](.lev/pm/specs/deadzone-api-contract.yaml) for the contract spine.
+- **Backend**: Python 3.11, FastAPI, asyncio, WebSockets, Bleak (BLE), Scapy (Wi-Fi passive)
+- **Frontend**: React + Vite + TypeScript, custom spatial map (SVG particles)
+- **Data Persistence**: Local trace recordings for replay mechanisms.
 
-## Hackathon Success Criteria
+## Quick Start
 
-| Tier | Goal |
-|------|------|
-| **Minimum** | Animated heatmap, replay mode, congestion visualization, `docker compose up` |
-| **Strong demo** | Live BLE sensing, multi-node visualization, sensor topology display |
-| **Stretch** | Meshtastic mesh, outdoor field test, live movement prediction |
+### Option 1: Docker (Recommended)
+
+Run the entire stack with a single command:
+
+```bash
+docker compose up
+```
+
+Then open `http://localhost:3000`. You should see an animated crowd heatmap with a badge indicating the current data mode (Mock by default).
+
+### Option 2: Local Development
+
+If you prefer to run the components separately or work on the codebase:
+
+```bash
+# Install all dependencies (frontend & backend)
+npm run install:all
+
+# Start both frontend (Vite) and backend (FastAPI) in development mode
+npm run dev
+```
 
 ## Engineering Principles
 
@@ -72,11 +71,12 @@ See [`.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/summary.md`](.lev/ux/2026
 - **Aggregate > Identity** — Never display or transmit device identifiers; only density, motion, pressure
 - **Event-driven** — `Sensor Event → Aggregation → Spatial Intelligence` everywhere, so replay/sim/ML reuse one pipe
 - **Honest provenance** — Mode badge is persistent and color-coded; mocking is labeled, never hidden
-- **Accessible** — WCAG AA palette (viridis + pattern overlay); no red-green-only encoding
 
-## Status
+## Repo Layout
 
-🚧 Scaffolding stage. Backend + frontend skeletons present; mock event generator is the next milestone (see `.lev/pm/tasks/deadzone-be-mock-replay/`).
+- `backend/`: FastAPI application, domain models, runtime engine, and data sources (mock, replay, ble).
+- `frontend/`: React components, store management, spatial rendering (`SpatialMap.tsx`), and styles.
+- `.lev/`: PM and UX specifications, pipelines, and task plans for the agentic development workflow.
 
 ## License
 

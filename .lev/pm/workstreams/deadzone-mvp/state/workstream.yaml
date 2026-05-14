@@ -11,6 +11,7 @@ decision_refs:
   - aggregate REST + WebSocket contracts define FE/BE boundary
   - WiFi-faked mesh is demo transport until LoRa hardware is available
   - BMW M design language captured before application
+  - 2026-05-14 pull conflict resolution accepted origin/main FE README/package updates over the local unified launcher wiring
 question_refs:
   - choose BMW M rollout strategy (full restyle vs phased PRs)
   - review scope of backend/app/mesh/{api_extra.py,discovery.py,runtime.py}
@@ -20,6 +21,8 @@ follow_up_refs:
   - reconcile mesh link-window spec/code deviation
   - wire /mesh/state into the main backend snapshot API
   - verify localhost:3000 renders correctly after UI overhaul merge
+  - commit the current merge after reviewing incoming FE README/package script changes
+  - rerun frontend typecheck/build after the merge is committed or before PR handoff
 extensions:
   current:
     date: '2026-05-14'
@@ -27,7 +30,7 @@ extensions:
     confidence: 0.85
     summary: Local-first crowd-intelligence MVP for hackathon demo. Backend (FastAPI + BLE + WiFi-faked mesh) is feature-complete; frontend (Vite + React) is running at localhost:3000 and is being made responsive (mobile/tablet/desktop) with an a11y-compliant sidebar drawer; BMW M design language is captured and deferred until after responsive pass lands.
     done_condition: docker compose up boots; backend WebSocket streams IntelligenceSnapshot; frontend heatmap dashboard renders live data + replay AND is responsive across mobile/tablet/desktop with a11y-compliant nav drawer; BMW M visual identity applied; acceptance checks in deadzone-agent-task-bundle.yaml pass.
-    current_focus: Unified local launch completed: stale DeadZone servers were stopped, repo-root `npm run dev` starts backend then frontend, and BLE/LIVE + MOCK remain the only active UI modes.
+    current_focus: Post-pull merge conflict resolved by accepting incoming FE README/package updates; merge is staged but not committed, and full FE build/browser QA still needs rerun.
   last_session:
     date: '2026-05-14'
     type: exec
@@ -71,6 +74,10 @@ extensions:
       type: implementation
       status: completed
       summary: "Unified local launch slice completed: stopped stale DeadZone Vite/backend/mesh/Bluetooth processes; added repo-root `npm run dev` via `package.json` + `scripts/dev-stack.mjs`; README now points to the unified command. Validation passed: launcher syntax, 13 focused backend tests, frontend typecheck/build, smoke `GET /` 200, config active_mode `ble` and available_modes [`ble`, `mock`]. No commit/push per explicit-user-request safety policy."
+    - date: '2026-05-14'
+      type: merge-resolution
+      status: completed
+      summary: "Resolved interrupted `git pull` conflicts in `README.md` and `package.json` per user instruction to prefer incoming FE updates. Accepted origin/main versions, staged both files, verified no unresolved index entries, no conflict markers, clean `git diff --check`, and valid `package.json`; merge remains uncommitted per explicit git safety policy."
   key_artifacts:
     - path: docs/deadzone-frontend-prd.yaml
       role: Frontend PRD (pushed, BE-task-compatible)
@@ -91,12 +98,18 @@ extensions:
     - path: .lev/pm/validation-reports/20260514-configuration-nav-restore.md
       role: Validation report for Configuration sidebar/page restoration
     - path: package.json
-      role: Planned repo-root unified launch command
+      role: Root package scripts from incoming FE stack (`dev` concurrently starts frontend + mock backend, `build`, `install:all`)
     - path: scripts/dev-stack.mjs
-      role: Backend + frontend dev orchestrator for `npm run dev`
+      role: Local unified launcher retained on disk but no longer wired by package.json after incoming FE conflict resolution
     - path: .lev/pm/validation-reports/20260514-unified-local-launch.md
       role: Validation report for unified local launch and BLE/MOCK mode contract
   pending_commits:
+    - paths:
+        - README.md
+        - package.json
+        - .lev/pm/workstreams/deadzone-mvp/state/workstream.yaml
+      status: staged merge resolution plus workstream update
+      notes: Merge conflicts are resolved and verified, but the merge commit has not been created because the user did not explicitly request a commit.
     - paths:
         - .lev/pm/designs/bmw-m-design-language.md
         - backend/app/mesh/api_extra.py
@@ -105,6 +118,8 @@ extensions:
       status: untracked
       notes: BMW M design doc is blocked on user go-ahead. Three mesh files need review before commit.
   blockers:
+    - Current `git pull` merge is resolved and staged but not committed.
+    - Full frontend typecheck/build and browser QA have not been rerun after accepting incoming FE package/README changes.
     - Three backend mesh files are untracked and not yet reviewed against the original mesh-wifi spec.
     - BMW M CSS rollout needs user confirmation before application code changes.
   vision_next_session:

@@ -1,6 +1,9 @@
 {
+  "name": "deadzone-root",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev-stack.mjs"
+    "dev": "npx concurrently \"npm run dev --prefix frontend\" \"cd backend && DEADZONE_MODE=mock uv run deadzone-backend\"",
+    "build": "npm run build --prefix frontend",
+    "install:all": "npm install --prefix frontend && cd backend && uv sync"
   }
 }

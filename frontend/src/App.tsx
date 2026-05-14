@@ -3,7 +3,7 @@ import { StoreProvider, useStore } from "./store";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { MetricsBar } from "./components/MetricsBar";
-import { VenueMap } from "./components/VenueMap";
+import { SpatialMap } from "./components/SpatialMap";
 import { AlertsPanel } from "./components/AlertsPanel";
 import { ZoneDetail } from "./components/ZoneDetail";
 import { AlertToast } from "./components/AlertToast";
@@ -12,6 +12,7 @@ import { HeatmapDashboard } from "./components/HeatmapDashboard";
 import { ConfigurationScreen } from "./components/ConfigurationScreen";
 import { MeshPanel } from "./components/MeshPanel";
 import { Drawer } from "./components/Drawer";
+import { DeviceEventTable } from "./components/DeviceEventTable";
 import "./styles.css";
 
 function useMediaQuery(query: string): boolean {
@@ -194,10 +195,12 @@ function Dashboard() {
             <ConfigurationScreen />
           ) : activeSection === "mesh" ? (
             <MeshPanel />
+          ) : activeSection === "sensors" ? (
+            <DeviceEventTable />
           ) : (
             <>
               <div className="canvas-wrap">
-                <VenueMap
+                <SpatialMap
                   selectedZone={selectedZone}
                   onZoneClick={handleZoneClick}
                 />

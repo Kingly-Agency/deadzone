@@ -5,6 +5,9 @@ import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 export function MetricsBar() {
   const { snapshot } = useStore();
 
+  const animatedTotalDevices = useAnimatedNumber(snapshot?.metrics.estimated_devices ?? 0);
+  const animatedActiveAlerts = useAnimatedNumber(snapshot?.metrics.active_alerts ?? 0);
+
   if (!snapshot) {
     return (
       <div className="metrics-bar">
@@ -27,9 +30,6 @@ export function MetricsBar() {
   // Overall trend from peak zone
   const trend = peakZone?.trend ?? "stable";
   const trendIcon = TREND_ICONS[trend];
-
-  const animatedTotalDevices = useAnimatedNumber(metrics.estimated_devices);
-  const animatedActiveAlerts = useAnimatedNumber(metrics.active_alerts);
 
   return (
     <div className="metrics-bar">
