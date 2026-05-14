@@ -189,6 +189,7 @@ class CaptureStatus(BaseModel):
 class SensorEventTailItem(BaseModel):
     timestamp: datetime
     sensor_id: str
+    beacon_hash: str
     source: Literal["ble", "mock", "replay"]
     rssi: int | None = None
     zone_id: str

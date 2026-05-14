@@ -89,9 +89,10 @@ async def sensors(engine: DeadZoneEngine = Depends(get_engine)) -> list[SensorNo
 @router.get("/api/v1/sensors/{sensor_id}/events", response_model=list[SensorEventTailItem])
 async def sensor_events(
     sensor_id: str,
+    limit: int = 10,
     engine: DeadZoneEngine = Depends(get_engine),
 ) -> list[dict]:
-    return engine.sensor_event_tail(sensor_id)
+    return engine.sensor_event_tail(sensor_id, limit=min(limit, 500))
 
 
 @router.get("/api/v1/replay/scenarios", response_model=list[ReplayScenario])

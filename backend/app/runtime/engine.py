@@ -267,6 +267,7 @@ class DeadZoneEngine:
             {
                 "timestamp": item.timestamp,
                 "sensor_id": sensor_id,
+                "beacon_hash": item.beacon_hash,
                 "source": "ble" if self.active_mode == "ble" else self.active_mode,
                 "rssi": item.rssi,
                 "zone_id": item.zone_id,

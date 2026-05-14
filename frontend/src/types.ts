@@ -159,6 +159,7 @@ export interface ReplayScenario {
 export interface RawSensorEvent {
   timestamp: string;
   sensor_id: string;
+  beacon_hash: string;
   rssi: number | null;
   zone_id: string;
   device_count: number;
