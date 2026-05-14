@@ -531,6 +531,46 @@ data_contract:
     - "StreamEnvelope replay_state message."
     - "StreamEnvelope error message."
 
+backend_task_compatibility:
+  status: compatible
+  checked_against:
+    - ".lev/pm/plans/deadzone-agent-task-bundle.yaml"
+    - ".lev/pm/specs/deadzone-api-contract.yaml"
+    - ".lev/pm/specs/deadzone-backend-scope.yaml"
+    - ".lev/pm/specs/deadzone-event-envelope.schema.json"
+  rules:
+    - "FE code must use the API Mode enum exactly: mock, replay, ble, wifi, mesh, hybrid."
+    - "The WebSocket endpoint name /ws/live is an endpoint path, not a frontend mode value."
+    - "StreamState.freshness may be live, fresh, stale, or offline; freshness is separate from mode."
+    - "Mock/replay/WebSocket remain the first implementation boundary; BLE, Wi-Fi, Mesh, and Hybrid are availability-gated."
+    - "Frontend fixtures must mirror the OpenAPI schema and event envelope, not UX-only names."
+  task_alignment:
+    - backend_task: BE-01
+      frontend_dependency: FE-P0-01
+      compatibility: "Dashboard shell assumes backend on :8000, frontend on :3000, CORS, and no required hardware."
+    - backend_task: BE-02
+      frontend_dependency: FE-P0-02
+      compatibility: "TypeScript types and fixtures map to StreamEnvelope, StreamState, IntelligenceSnapshot, ZoneAggregate, FlowVector, Alert, SensorNode, MeshLink, and ReplayScenario."
+    - backend_task: BE-03
+      frontend_dependency: ["FE-P0-03", "FE-P0-05", "FE-P0-08"]
+      compatibility: "Mock UI expects seeded density, flow, sensor health, and deterministic alerts without identity fields."
+    - backend_task: BE-04
+      frontend_dependency: FE-P0-07
+      compatibility: "Replay UI consumes /api/v1/replay/scenarios and /api/v1/replay/control; required scenarios are convention-crowd, concert-exit-rush, and hallway-stall."
+    - backend_task: BE-05
+      frontend_dependency: ["FE-P0-02", "FE-P0-03", "FE-P0-05"]
+      compatibility: "Snapshot-first render and sequence-aware WebSocket updates match backend broadcaster and latest-snapshot requirements."
+    - backend_task: BE-06
+      frontend_dependency: ["FE-P0-06", "FE-P1-02", "FE-P1-03"]
+      compatibility: "Mode dropdown and topology states use disabled_modes reasons for BLE, Wi-Fi, and Mesh without blocking startup."
+  known_contract_tensions_resolved:
+    - tension: "UX language used Live as a mode, while API Mode enum does not."
+      resolution: "Live Sensors is UI grouping only; ble, wifi, and hybrid are the actual mode values."
+    - tension: "UX-B mentioned four replay scenarios, while backend scope requires three first-demo scenarios."
+      resolution: "FE PRD requires API-provided scenarios and names the backend-required three; additional scenarios remain optional."
+    - tension: "UX raw event tail could imply identity data."
+      resolution: "Raw event tail is diagnostic and aggregate-safe only; stable device identifiers are forbidden."
+
 functional_requirements:
   - id: FE-P0-01
     title: "Dashboard shell"
@@ -596,6 +636,7 @@ functional_requirements:
     requirement: "When Replay mode is active, let user choose scenario, play, pause, restart, scrub/seek, and change speed."
     acceptance:
       - "Scenario list comes from GET /api/v1/replay/scenarios."
+      - "Required backend scenarios are convention-crowd, concert-exit-rush, and hallway-stall; any fourth scenario is optional."
       - "Replay controls call POST /api/v1/replay/control."
       - "Ended replay holds final frame and offers restart."
       - "Load errors show alternate scenarios or fallback to Mock."

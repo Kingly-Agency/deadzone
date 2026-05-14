@@ -24,7 +24,7 @@ canonical_refs:
 **Session:** 1
 **Status:** active
 
-Combining the available `.lev/ux` run artifacts into an evidence-backed frontend PRD, with the second run still to be located or marked missing.
+The two DeadZone `.lev/ux` runs have been combined into `docs/deadzone-frontend-prd.yaml`; current action is validation, commit, and push.
 
 ## Next Agent Brief
 
@@ -32,7 +32,7 @@ Combining the available `.lev/ux` run artifacts into an evidence-backed frontend
 
 **Done Condition:** Both UX runs are inventoried or a missing-run gap is explicitly proven, their artifacts are compared by requirement area, conflicts and shared decisions are resolved into frontend product requirements, and the PRD is delivered without violating the local markdown-save restriction.
 
-**Current Execution Slice:** Find the two UX run sources, load their artifacts, and determine the correct PRD output surface.
+**Current Execution Slice:** Validate the docs PRD against backend tasks/contracts, then commit and push.
 
 **Why This Slice Now:** The objective depends on comparing two concrete UX runs; synthesis before both source sets are found would be incomplete.
 
@@ -47,19 +47,19 @@ Combining the available `.lev/ux` run artifacts into an evidence-backed frontend
 | 3 | FE PRD handoff | .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md | created | work skill | D1 | keep updated |
 | 4 | FE partner brief | deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml | loaded | prior art | D2 | supersede/extend |
 | 5 | API contract | deadzone/.lev/pm/specs/deadzone-api-contract.yaml | loaded | prior art | D2 | bind PRD |
-| 6 | FE PRD | deadzone/.lev/pm/specs/deadzone-frontend-prd.yaml | planned | current objective | D2 | create |
+| 6 | FE PRD | docs/deadzone-frontend-prd.yaml | modified | current objective | D2/D3 | validate + push |
 
 ## Roadmap To Goal
 
 **Goal**: Produce a frontend PRD from an exhaustive comparison of two `.lev/ux` runs.
 **Done Condition**: Source inventory, compare/contrast matrix, resolved FE requirements, gaps, and completion audit are all backed by concrete file evidence.
-**Remaining Steps**: 4
+**Remaining Steps**: 1
 
-### Step 1: Source inventory and prior art
-- Verify every `.lev/ux` run folder visible in this workspace.
-- Search adjacent `.lev` and project directories only as needed to locate the second UX run.
-- Run required prior-art scans for PRD/design/spec context.
-- Exit when both UX runs are loaded or the second-run gap is concrete.
+### Step 1: Validate, commit, and push
+- Validate `docs/deadzone-frontend-prd.yaml` parses as YAML.
+- Check API mode enum alignment against `.lev/pm/specs/deadzone-api-contract.yaml`.
+- Check backend task coverage against `.lev/pm/plans/deadzone-agent-task-bundle.yaml`.
+- Commit the docs PRD update and push `main`.
 
 #### Step 2: Exhaustive compare/contrast
 - Compare request, domain, problem spec, IA, task graph, FSM, components, wireframes, and constraints.
@@ -82,6 +82,8 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 | T+1 | Work and UX skill instructions loaded -- handoff and UX artifact workflow are governing process. |
 | T+2 | Existing backend handoff loaded -- relevant as stale context only, not the current goal artifact. |
 | T+4 | Prior-art scan found the paired DeadZone UX run and existing DeadZone PM specs under `deadzone/.lev/`. |
+| T+6 | User requested docs location and push; PRD target moved to `docs/deadzone-frontend-prd.yaml`. |
+| T+7 | Backend compatibility check found and resolved the UX `Live` mode mismatch with API modes `ble`, `wifi`, and `hybrid`. |
 
 ### CHECKPOINT 1 -- FE Handoff Created
 
@@ -103,6 +105,16 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 **Progress:** Source inventory and prior-art requirements are complete; consumer-stack UX runs were inspected and excluded as unrelated.
 **Next Steps:** Create the YAML FE PRD in the canonical DeadZone PM spec directory and validate it.
 
+### CHECKPOINT 3 -- Docs PRD Backend-Compatible
+
+**Current State:** FE PRD is in docs and explicitly checked against backend tasks and contracts.
+**Context:** User requested the artifact be placed in `docs/`, pushed, and made compatible with BE tasks.
+**Files Loaded:** `docs/deadzone-frontend-prd.yaml`, `.lev/pm/plans/deadzone-agent-task-bundle.yaml`, `.lev/pm/specs/deadzone-api-contract.yaml`, `.lev/pm/specs/deadzone-backend-scope.yaml`, `.lev/pm/specs/deadzone-event-envelope.schema.json`.
+**Files Modified:** `docs/deadzone-frontend-prd.yaml`, `.lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md`.
+**Understanding:** The backend API mode enum is `mock`, `replay`, `ble`, `wifi`, `mesh`, `hybrid`; `Live Sensors` must stay a UI grouping label, not a wire value.
+**Progress:** Added `backend_task_compatibility`, mapped BE-01 through BE-06 to FE requirements, and named the three backend-required replay scenarios.
+**Next Steps:** Commit and push `main`.
+
 ## Timeline
 
 | Time | Checkpoint |
@@ -113,6 +125,8 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 | T+3 | FE PRD handoff created |
 | T+4 | `.lev/ux`, `deadzone/.lev/ux`, and `consumer-stack/.lev/ux` scanned |
 | T+5 | DeadZone UX pair and PM specs loaded for synthesis |
+| T+6 | User requested docs placement and push |
+| T+7 | Docs PRD made backend-compatible |
 
 ## Decisions Log
 
@@ -138,27 +152,49 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 - [ ] Compare source artifacts exhaustively.
 - [ ] Produce FE PRD on an allowed output surface.
 
-### D2: Use `deadzone/.lev/pm/specs/deadzone-frontend-prd.yaml` as the FE PRD artifact
+### D2: Use YAML instead of markdown for the FE PRD artifact
 
 **When:** 2026-05-14
 **Context:** The objective asks for a FE PRD, but local instructions prohibit saving new markdown unless explicitly asked. Existing DeadZone PM artifacts are YAML specs under `deadzone/.lev/pm/specs/`.
-**Decision:** Produce the FE PRD as YAML in `deadzone/.lev/pm/specs/deadzone-frontend-prd.yaml`, extending the existing FE partner brief and binding to the API contract.
-**Rationale:** YAML satisfies the artifact requirement without creating a new markdown document and keeps the PRD in the established DeadZone PM source-of-truth directory.
+**Decision:** Produce the FE PRD as YAML, extending the existing FE partner brief and binding to the API contract.
+**Rationale:** YAML satisfies the artifact requirement without creating a new markdown document.
 **Impact:** FE implementation agents should use the new PRD as the consolidated source, with the older FE partner brief treated as a shorter implementation brief.
 **Code Refs:** `deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml`, `deadzone/.lev/pm/specs/deadzone-api-contract.yaml`
-**Canonical Ref:** `deadzone/.lev/pm/specs/deadzone-frontend-prd.yaml`
+**Canonical Ref:** `docs/deadzone-frontend-prd.yaml`
 
 **Alternatives Considered:**
 - Save a markdown PRD: rejected by local instruction.
 - Deliver only in chat: rejected because the active goal calls for a produced PRD and existing PM specs are file-based.
-- Chosen option: create a YAML PRD artifact in the canonical PM specs directory.
+- Chosen option: create a YAML PRD artifact and place it under `docs/` per user request.
 
 **Promotion:** stay in handoff
 
 **Follow-up Required:**
-- [ ] Create `deadzone/.lev/pm/specs/deadzone-frontend-prd.yaml`.
-- [ ] Validate YAML syntax.
-- [ ] Audit objective coverage against both UX runs.
+- [x] Create `docs/deadzone-frontend-prd.yaml`.
+- [x] Validate YAML syntax.
+- [x] Audit objective coverage against both UX runs.
+
+### D3: Treat Live as a UI grouping, not a backend mode
+
+**When:** 2026-05-14
+**Context:** UX-B uses "Live" in the product story, but `.lev/pm/specs/deadzone-api-contract.yaml` defines backend `Mode` as `mock`, `replay`, `ble`, `wifi`, `mesh`, and `hybrid`.
+**Decision:** The FE PRD must use backend mode values exactly and may group `ble`, `wifi`, and `hybrid` under the UI label `Live Sensors`.
+**Rationale:** This keeps the FE PRD compatible with BE tasks and prevents agents from implementing an unsupported `live` wire value.
+**Impact:** Mode dropdown, fixtures, reset behavior, and disabled-mode handling are contract-safe.
+**Code Refs:** `.lev/pm/specs/deadzone-api-contract.yaml`, `.lev/pm/plans/deadzone-agent-task-bundle.yaml`, `docs/deadzone-frontend-prd.yaml`
+**Canonical Ref:** `docs/deadzone-frontend-prd.yaml`
+
+**Alternatives Considered:**
+- Add `live` to the contract: rejected because the task is FE PRD compatibility, not BE contract mutation.
+- Hide live sensing entirely: rejected because UX/pitch still needs the live progression.
+- Chosen option: use `Live Sensors` as display grouping over concrete backend modes.
+
+**Promotion:** stay in handoff
+
+**Follow-up Required:**
+- [x] Validate PRD mode enum against API mode enum.
+- [x] Map BE tasks to FE requirements.
+- [ ] Push docs update.
 
 ## Code Context
 
@@ -166,11 +202,12 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 
 | File | Change Type | Lines | Status | Notes |
 |------|-------------|-------|--------|-------|
-| .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md | added | +135 | in_progress | Required session handoff for current FE PRD objective |
+| docs/deadzone-frontend-prd.yaml | modified | ~40 | complete | Added BE task compatibility and contract-safe mode mapping |
+| .lev/pm/handoffs/20260514-fe-prd-deadzone-ux-synthesis-session-1.md | modified | ~55 | in_progress | Updated user request, decisions, and push status |
 
 **Total Changes:**
-- Files added: 1
-- Files modified: 0
+- Files added: 0
+- Files modified: 2
 - Files deleted: 0
 - Lines changed: +135 / -0
 
@@ -186,13 +223,14 @@ Maintain a deterministic trail for combining `.lev/ux` sources into a frontend P
 | 6 | .lev/ux/20260514-101706-deadzone-mvp-crowd-intel/ | Source UX run | Richer pass: single-screen progressive disclosure, 4 modes, detailed state machine, accessibility, and demo timing | Adds exhaustive PRD detail |
 | 7 | deadzone/.lev/pm/specs/deadzone-api-contract.yaml | Contract prior art | FE must render `IntelligenceSnapshot` plus WebSocket `StreamEnvelope` updates and preserve sequence/freshness semantics | Defines FE/BE boundary |
 | 8 | deadzone/.lev/pm/specs/deadzone-frontend-partner-brief.yaml | FE prior art | Existing brief already states dashboard-first, source/freshness visibility, state rules, and acceptance checks | New PRD should supersede with richer detail |
+| 9 | docs/deadzone-frontend-prd.yaml | Current deliverable | Docs PRD now maps BE-01 through BE-06 and uses the exact backend mode enum | Satisfies docs placement and BE compatibility request |
 
 ## Open Questions
 
 ### Immediate (Next Session)
 
-1. Where is the second `.lev/ux` run, if it exists outside `.lev/ux/20260514-101706-deadzone-mvp-crowd-intel/`?
-2. Should the FE PRD be saved as a file despite the local markdown restriction, or delivered in-chat only?
+1. Push still pending until commit succeeds.
+2. None on source location; both DeadZone UX runs are present under `.lev/ux/`.
 
 ### Short-term (This Week)
 
