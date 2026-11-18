@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../store";
 import { MODE_TOKENS } from "../types";
 import type { Mode } from "../types";
@@ -16,25 +16,18 @@ const MODE_LIST: { mode: Mode; desc: string }[] = [
 
 export function Header({
   onMenuToggle,
-  onBellClick,
   isMobileNavOpen,
-  isAlertsOpen,
   isNarrow,
-  bellRef,
   menuBtnRef,
 }: {
   onMenuToggle: () => void;
-  onBellClick: () => void;
   isMobileNavOpen: boolean;
-  isAlertsOpen: boolean;
   isNarrow: boolean;
-  bellRef: React.RefObject<HTMLButtonElement>;
   menuBtnRef: React.RefObject<HTMLButtonElement>;
 }) {
   const { snapshot, config, switchMode, reset } = useStore();
   const [showModes, setShowModes] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() => getInitialTheme());
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -66,25 +59,6 @@ export function Header({
           <span className="breadcrumb-sep">/</span>
           <span className="breadcrumb-current">Overview</span>
         </nav>
-      </div>
-
-      {/* Search — collapses to icon on mobile */}
-      <div className="header-center">
-        <div
-          className="header-search"
-          onClick={() => searchInputRef.current?.focus()}
-        >
-          <span className="search-icon">⌕</span>
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search zones, sensors…"
-            className="search-input"
-            readOnly
-            aria-label="Search zones and sensors"
-          />
-          <kbd className="search-kbd">⌘K</kbd>
-        </div>
       </div>
 
       <div className="header-right">
@@ -156,22 +130,6 @@ export function Header({
           ↺ Reset
         </button>
 
-        {/* Notification bell — acts as alerts drawer trigger on mobile/tablet */}
-        <button
-          ref={bellRef}
-          className="header-btn header-bell"
-          title={isNarrow ? (isAlertsOpen ? "Close alerts" : "Open alerts") : "Notifications"}
-          onClick={onBellClick}
-          aria-label="Notifications"
-          aria-expanded={isNarrow ? isAlertsOpen : undefined}
-          aria-haspopup={isNarrow ? "dialog" : undefined}
-        >
-          🔔
-          {(snapshot?.metrics.active_alerts ?? 0) > 0 && (
-            <span className="bell-badge">{snapshot?.metrics.active_alerts}</span>
-          )}
-        </button>
-
         {/* Theme toggle */}
         <button
           type="button"
@@ -183,10 +141,6 @@ export function Header({
           <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
         </button>
 
-        {/* Avatar */}
-        <div className="header-avatar" title="Operator" aria-label="Operator account">
-          <span>OP</span>
-        </div>
       </div>
     </header>
   );

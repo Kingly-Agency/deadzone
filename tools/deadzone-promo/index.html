@@ -4,19 +4,208 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=1920, height=1080" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
         margin: 0;
         width: 1920px;
         height: 1080px;
         overflow: hidden;
         background: #000;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #fff;
+      }
+      :root {
+        --canvas: #000;
+        --surface-card: #1a1a1a;
+        --surface-elevated: #262626;
+        --hairline: #3c3c3c;
+        --on-dark: #fff;
+        --body: #bbb;
+        --muted: #7e7e7e;
+        --m-blue-light: #0066b1;
+        --m-mesh: #8b5cf6;
+        --m-red: #e22718;
+        --warning: #f4b400;
+      }
+      #root { position: relative; width: 1920px; height: 1080px; }
+      .clip {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+      .scene-content {
+        width: 100%;
+        height: 100%;
+        padding: 96px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 24px;
+      }
+      .display-xl {
+        font-size: 120px;
+        font-weight: 700;
+        line-height: 1.0;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        color: var(--on-dark);
+      }
+      .display-lg {
+        font-size: 80px;
+        font-weight: 700;
+        line-height: 1.05;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+      }
+      .display-md {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1.1;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+      }
+      .sub {
+        font-size: 28px;
+        font-weight: 300;
+        color: var(--body);
+        line-height: 1.4;
+      }
+      .label-up {
+        font-size: 18px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--on-dark);
+      }
+      .m-stripe {
+        height: 8px;
+        background: linear-gradient(
+          90deg,
+          var(--m-blue-light) 0%,
+          var(--m-blue-light) 33.33%,
+          var(--m-mesh) 33.33%,
+          var(--m-mesh) 66.66%,
+          var(--m-red) 66.66%,
+          var(--m-red) 100%
+        );
+        transform-origin: left center;
+      }
+      .scene-1 .display-xl { font-size: 96px; }
+      .scene-2 .wordmark {
+        font-size: 200px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: -2px;
+        line-height: 1;
+      }
+      .scene-2 .scene-content {
+        align-items: center;
+        text-align: center;
+      }
+      .scene-3 .bg, .scene-4 .bg {
+        position: absolute; inset: 0;
+        background-size: cover;
+        background-position: center;
+        transform-origin: center;
+      }
+      .scene-3 .bg { background-image: url("assets/dashboard-dark.png"); }
+      .scene-4 .bg { background-image: url("assets/heatmap-dark.png"); }
+      .scene-3 .overlay, .scene-4 .overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.85) 100%);
+      }
+      .scene-3 .scene-content, .scene-4 .scene-content {
+        position: relative;
+        z-index: 2;
+        justify-content: space-between;
+      }
+      .pill {
+        align-self: flex-start;
+        display: inline-block;
+        padding: 16px 28px;
+        border: 1px solid var(--on-dark);
+        color: var(--on-dark);
+        font-size: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        background: rgba(0,0,0,0.55);
+      }
+      .pill .dot {
+        display: inline-block;
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: var(--m-red);
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+      .scene-5 .scene-content {
+        justify-content: center;
+        gap: 40px;
+        padding-left: 200px;
+      }
+      .promise-row {
+        position: relative;
+        display: inline-block;
+        font-size: 96px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+        line-height: 1;
+        padding-bottom: 14px;
+        align-self: flex-start;
+      }
+      .promise-underline {
+        position: absolute;
+        left: 0; bottom: 0;
+        width: 100%;
+        height: 6px;
+        background: var(--m-red);
+        transform: scaleX(0);
+        transform-origin: left center;
+      }
+      .scene-6 .scene-content {
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 40px;
+      }
+      .scene-6 .m-stripe { width: 640px; }
+      .scene-6 .wordmark {
+        font-size: 160px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        line-height: 1;
+      }
+      .scene-6 .url {
+        font-size: 22px;
+        font-weight: 300;
+        color: var(--muted);
+        letter-spacing: 1px;
+      }
+      .top-stripe {
+        position: absolute;
+        top: 0; left: 0;
+        width: 280px;
+      }
+      .bottom-mark {
+        position: absolute;
+        left: 96px; bottom: 96px;
+        font-size: 18px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--muted);
       }
     </style>
   </head>
@@ -25,26 +214,126 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="28"
       data-width="1920"
       data-height="1080"
     >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
+      <!-- Scene 1 — Hook -->
+      <div class="clip scene-1" data-start="0" data-duration="4" data-track-index="1">
+        <div class="m-stripe top-stripe"></div>
+        <div class="scene-content">
+          <div class="display-xl" data-w="1">When a crowd</div>
+          <div class="display-xl" data-w="2">gets dangerous,</div>
+          <div class="sub">every second of warning matters.</div>
         </div>
-      -->
+        <div class="bottom-mark">DeadZone — 2026</div>
+      </div>
+
+      <!-- Scene 2 — Brand -->
+      <div class="clip scene-2" data-start="4" data-duration="4" data-track-index="1">
+        <div class="scene-content">
+          <div class="m-stripe" style="width: 640px;"></div>
+          <div class="wordmark">DeadZone</div>
+          <div class="sub">Live crowd intelligence.</div>
+        </div>
+      </div>
+
+      <!-- Scene 3 — Dashboard -->
+      <div class="clip scene-3" data-start="8" data-duration="6" data-track-index="1">
+        <div class="bg"></div>
+        <div class="overlay"></div>
+        <div class="scene-content">
+          <div class="pill"><span class="dot"></span>Live BLE · 4 zones · 4 active alerts</div>
+          <div>
+            <div class="display-md">Real-time density.</div>
+            <div class="sub" style="margin-top: 16px;">Bluetooth signals → zone density → alerts. Continuously.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 4 — Heatmap -->
+      <div class="clip scene-4" data-start="14" data-duration="6" data-track-index="1">
+        <div class="bg"></div>
+        <div class="overlay"></div>
+        <div class="scene-content">
+          <div>
+            <div class="label-up" style="color: var(--m-red); margin-bottom: 16px;">Density redshift</div>
+            <div class="display-md">Cool zones fade.<br/>Hot zones glow red.</div>
+          </div>
+          <div class="sub">Pressure visualized with BMW-M editorial discipline.</div>
+        </div>
+      </div>
+
+      <!-- Scene 5 — Promise -->
+      <div class="clip scene-5" data-start="20" data-duration="4" data-track-index="1">
+        <div class="scene-content">
+          <div class="promise-row" id="p1">BLE-first.<span class="promise-underline" id="u1"></span></div>
+          <div class="promise-row" id="p2">Mesh-ready.<span class="promise-underline" id="u2"></span></div>
+          <div class="promise-row" id="p3">Privacy-preserving.<span class="promise-underline" id="u3"></span></div>
+        </div>
+      </div>
+
+      <!-- Scene 6 — Sign-off -->
+      <div class="clip scene-6" data-start="24" data-duration="4" data-track-index="1">
+        <div class="scene-content">
+          <div class="m-stripe"></div>
+          <div class="wordmark">DeadZone</div>
+          <div class="url">github.com/Kingly-Agency/deadzone</div>
+        </div>
+      </div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
+
+      // ── Scene 1 — Hook ──
+      tl.from(".scene-1 .top-stripe", { scaleX: 0, duration: 0.6, ease: "power3.out" }, 0.1);
+      tl.from(".scene-1 [data-w='1']", { yPercent: 100, opacity: 0, duration: 0.7, ease: "power3.out" }, 0.2);
+      tl.from(".scene-1 [data-w='2']", { yPercent: 100, opacity: 0, duration: 0.7, ease: "power3.out" }, 0.35);
+      tl.from(".scene-1 .sub", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.8);
+      tl.from(".scene-1 .bottom-mark", { opacity: 0, duration: 0.6 }, 1.2);
+
+      // ── Scene 2 — Brand ──
+      tl.from(".scene-2 .m-stripe", { scaleX: 0, transformOrigin: "left center", duration: 0.7, ease: "power3.out" }, 4.1);
+      tl.from(".scene-2 .wordmark", { y: 60, opacity: 0, duration: 0.8, ease: "power3.out" }, 4.5);
+      tl.from(".scene-2 .sub", { y: 20, opacity: 0, duration: 0.6, ease: "power3.out" }, 5.0);
+
+      // ── Scene 3 — Dashboard ──
+      tl.fromTo(".scene-3 .bg",
+        { scale: 1.02 },
+        { scale: 1.10, duration: 6, ease: "none" },
+        8);
+      tl.from(".scene-3 .pill", { x: 60, opacity: 0, duration: 0.7, ease: "power3.out" }, 8.4);
+      tl.from(".scene-3 .display-md", { y: 30, opacity: 0, duration: 0.7, ease: "power3.out" }, 8.8);
+      tl.from(".scene-3 .sub", { y: 20, opacity: 0, duration: 0.7, ease: "power3.out" }, 9.2);
+
+      // ── Scene 4 — Heatmap ──
+      tl.fromTo(".scene-4 .bg",
+        { x: -40, scale: 1.06 },
+        { x: 40, scale: 1.10, duration: 6, ease: "none" },
+        14);
+      tl.from(".scene-4 .label-up", { x: -40, opacity: 0, duration: 0.7, ease: "power3.out" }, 14.4);
+      tl.from(".scene-4 .display-md", { y: 30, opacity: 0, duration: 0.8, ease: "power3.out" }, 14.7);
+      tl.from(".scene-4 .sub", { y: 20, opacity: 0, duration: 0.6, ease: "power3.out" }, 15.4);
+
+      // ── Scene 5 — Promise ──
+      ["#p1", "#p2", "#p3"].forEach((id, i) => {
+        const t0 = 20.2 + i * 0.55;
+        tl.from(id, { y: 50, opacity: 0, duration: 0.6, ease: "power3.out" }, t0);
+      });
+      ["#u1", "#u2", "#u3"].forEach((id, i) => {
+        const t0 = 20.55 + i * 0.55;
+        tl.fromTo(id, { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power2.out" }, t0);
+      });
+
+      // ── Scene 6 — Sign-off ──
+      tl.from(".scene-6 .m-stripe", { scaleX: 0, transformOrigin: "left center", duration: 0.7, ease: "power3.out" }, 24.1);
+      tl.from(".scene-6 .wordmark", { y: 40, opacity: 0, duration: 0.8, ease: "power3.out" }, 24.5);
+      tl.from(".scene-6 .url", { y: 20, opacity: 0, duration: 0.6, ease: "power3.out" }, 25.1);
+      // Final fade-to-black
+      tl.to(".scene-6", { opacity: 0, duration: 0.5, ease: "power2.in" }, 27.4);
+
       window.__timelines["main"] = tl;
     </script>
   </body>

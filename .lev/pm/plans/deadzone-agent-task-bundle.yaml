@@ -265,4 +265,4 @@ parallelization_notes:
   avoid:
     - "Do not let FE invent payload fields outside the contract."
     - "Do not let BE expose raw device identifiers."
-      - "Do not build mock/replay from invented data before local BLE capture is stable."
+    - "Do not build mock/replay from invented data before local BLE capture is stable."

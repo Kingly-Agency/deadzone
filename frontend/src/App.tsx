@@ -39,7 +39,6 @@ function Dashboard() {
   const isNarrow = useMediaQuery("(max-width: 1024px)");
 
   // Refs for focus-return targets
-  const bellRef = useRef<HTMLButtonElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   // Ref for inert on main content while a drawer is open
   const mainRef = useRef<HTMLDivElement>(null);
@@ -94,17 +93,7 @@ function Dashboard() {
   }, []);
   const closeNav = useCallback(() => setIsMobileNavOpen(false), []);
 
-  const openAlerts = useCallback(() => {
-    setIsAlertsOpen(true);
-    setIsMobileNavOpen(false);
-  }, []);
   const closeAlerts = useCallback(() => setIsAlertsOpen(false), []);
-
-  const handleBellClick = useCallback(() => {
-    if (isNarrow) {
-      isAlertsOpen ? closeAlerts() : openAlerts();
-    }
-  }, [isNarrow, isAlertsOpen, openAlerts, closeAlerts]);
 
   const handleZoneClick = useCallback(
     (zoneId: string) => {
@@ -179,11 +168,8 @@ function Dashboard() {
       <div className="app-main" ref={mainRef}>
         <Header
           onMenuToggle={openNav}
-          onBellClick={handleBellClick}
           isMobileNavOpen={isMobileNavOpen}
-          isAlertsOpen={isAlertsOpen}
           isNarrow={isNarrow}
-          bellRef={bellRef}
           menuBtnRef={menuBtnRef}
         />
         <MetricsBar />
@@ -230,7 +216,6 @@ function Dashboard() {
           side="right"
           label={selectedZone ? "Zone detail" : "Alerts"}
           width={360}
-          triggerRef={bellRef as React.RefObject<HTMLElement>}
         >
           <div className="drawer-inner">
             {selectedZone ? (
